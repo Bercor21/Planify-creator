@@ -15,7 +15,6 @@ const PAGE_SIZES_CSS: Record<string, string> = {
   '11x17':   '279.4mm 431.8mm',
   '60x90':   '600mm 900mm',
   cuaderno:  '160mm 215mm',
-  // Agenda
   bolsillo:     '100mm 150mm',
   'cuaderno-s': '140mm 210mm',
   'cuaderno-m': '170mm 240mm',
@@ -31,14 +30,23 @@ function getPageCSS(tamano: string): string {
       size: ${size} !important;
       margin: 0 !important;
       padding: 0 !important;
+      bleed: 0 !important;
     }
-    html, body {
+    html {
       margin: 0 !important;
       padding: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100vw !important;
     }
     * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
   `
 }
@@ -129,17 +137,14 @@ export async function exportarPDFPaginas(
 
     showToast(setToast, `⏳ Generando ${secciones.length} páginas...`)
 
-    // Contenedor temporal para clonar cada sección y capturarla limpiamente
     const wrap = document.createElement('div')
     wrap.style.cssText = `position:fixed;left:-9999px;top:0;width:794px;overflow:visible;box-sizing:border-box;`
     document.body.appendChild(wrap)
 
     for (let i = 0; i < secciones.length; i++) {
       const seccion = secciones[i]
-
-      // Clonar la sección en el contenedor temporal
       const clone = seccion.cloneNode(true) as HTMLElement
-      clone.style.width   = '794px'
+      clone.style.width    = '794px'
       clone.style.minHeight = '1122px'
       clone.style.pageBreakAfter = 'unset'
       wrap.innerHTML = ''
@@ -180,7 +185,7 @@ export async function exportarPDFPaginas(
   setExportando(false)
 }
 
-// ── Imprimir elemento genérico (planificador, agenda vieja) ──────────────────
+// ── Imprimir elemento genérico ────────────────────────────────────────────────
 export function imprimirElemento(id: string, tamano = 'a4') {
   const el = document.getElementById(id)
   if (!el) return
@@ -198,10 +203,23 @@ export function imprimirElemento(id: string, tamano = 'a4') {
   style.id = 'print-generic-style'
   style.innerHTML = `
     ${getPageCSS(tamano)}
-    @media screen  { #print-generic-root { display: none; } }
+    @media screen { #print-generic-root { display: none; } }
     @media print {
       body > *:not(#print-generic-root) { display: none !important; }
-      #print-generic-root { display: block !important; }
+      #print-generic-root {
+        display: block !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      #print-generic-root > * {
+        width: 100vw !important;
+        min-height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+      }
     }
   `
   document.head.appendChild(style)
@@ -211,7 +229,7 @@ export function imprimirElemento(id: string, tamano = 'a4') {
   }, 300)
 }
 
-// ── Imprimir calendario mes a mes ────────────────────────────────────────────
+// ── Imprimir calendario mes a mes ─────────────────────────────────────────────
 export function imprimirCalendarioMesAMes(
   anio: number,
   titulo: string,
@@ -239,39 +257,34 @@ export function imprimirCalendarioMesAMes(
       const color = !dia ? 'transparent' : isHoy ? 'white' : esDom ? paleta.acento : paleta.texto
       const bg    = isHoy ? paleta.acento : 'transparent'
       const fw    = isHoy ? 700 : esDom ? 600 : 400
-      return `<div style="text-align:center;font-size:14px;color:${color};background:${bg};border-radius:50%;width:28px;height:28px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:${fw};">${dia || ''}</div>`
+      return `<div style="text-align:center;font-size:18px;color:${color};background:${bg};border-radius:50%;width:36px;height:36px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:${fw};">${dia || ''}</div>`
     }).join('')
 
     const fotoStyle = fotos[idx]
-      ? `background:url('${fotos[idx]}') center/cover`
-      : `background:linear-gradient(135deg,${paleta.header}dd,${paleta.acento}99)`
+      ? `background:url('${fotos[idx]}') center/cover no-repeat`
+      : `background:linear-gradient(135deg,${paleta.header}ee,${paleta.acento}cc)`
 
     const fotoSection = tipo === 'pared' ? `
-      <div style="height:260px;${fotoStyle};position:relative;border-radius:12px 12px 0 0;">
-        <div style="position:absolute;bottom:12px;left:16px;font-size:22px;font-weight:800;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.7);font-family:${fuente};">${mes}</div>
+      <div style="flex:1;${fotoStyle};position:relative;min-height:0;">
+        <div style="position:absolute;bottom:20px;left:28px;font-size:32px;font-weight:900;color:white;text-shadow:0 2px 12px rgba(0,0,0,0.7);font-family:${fuente};letter-spacing:2px;">${mes.toUpperCase()}</div>
       </div>` : ''
 
     const mesHeader = tipo === 'mesa' ? `
-      <div style="font-size:22px;font-weight:800;color:${paleta.header};text-align:center;margin-bottom:16px;letter-spacing:2px;font-family:${fuente};">${mes.toUpperCase()}</div>` : ''
+      <div style="font-size:36px;font-weight:900;color:${paleta.header};text-align:center;margin-bottom:20px;letter-spacing:3px;font-family:${fuente};">${mes.toUpperCase()}</div>` : ''
 
     return `
-      <div style="
-        page-break-after: ${isLast ? 'auto' : 'always'};
-        width:100%; height:100vh;
-        display:flex; align-items:center; justify-content:center;
-        background:${paleta.fondo}; padding:40px; box-sizing:border-box;
-      ">
-        <div style="width:100%;max-width:520px;background:${paleta.fondo === '#0f172a' ? '#1e293b' : 'white'};border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.12);border:1px solid ${paleta.acento}33;font-family:${fuente};">
-          ${fotoSection}
-          <div style="padding:24px;">
-            <div style="text-align:center;margin-bottom:20px;">
-              <div style="font-size:13px;font-weight:600;color:${paleta.acento};letter-spacing:1px;">${titulo.toUpperCase()} · ${anio}</div>
-            </div>
-            ${mesHeader}
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px;">
-              ${DIAS.map(d => `<div style="text-align:center;font-size:12px;font-weight:700;color:${paleta.acento};padding:4px 0;">${d}</div>`).join('')}
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">${celdasHTML}</div>
+      <div class="mes-pagina" style="page-break-after:${isLast ? 'auto' : 'always'};width:100vw;height:100vh;background:${paleta.fondo};display:flex;flex-direction:column;box-sizing:border-box;margin:0;padding:0;overflow:hidden;font-family:${fuente};">
+        ${fotoSection}
+        <div style="padding:${tipo === 'pared' ? '24px 32px 28px' : '40px 32px 28px'};display:flex;flex-direction:column;background:${paleta.fondo === '#0f172a' ? '#1e293b' : 'white'};${tipo === 'mesa' ? 'flex:1;' : ''}">
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:700;color:${paleta.acento};letter-spacing:2px;">${titulo.toUpperCase()} · ${anio}</div>
+          </div>
+          ${mesHeader}
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:10px;">
+            ${DIAS.map(d => `<div style="text-align:center;font-size:14px;font-weight:700;color:${paleta.acento};padding:8px 0;">${d}</div>`).join('')}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;flex:1;">
+            ${celdasHTML}
           </div>
         </div>
       </div>`
@@ -289,7 +302,22 @@ export function imprimirCalendarioMesAMes(
     @media screen { #print-calendario-root { display: none; } }
     @media print {
       body > *:not(#print-calendario-root) { display: none !important; }
-      #print-calendario-root { display: block !important; }
+      #print-calendario-root {
+        display: block !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .mes-pagina {
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        overflow: hidden !important;
+      }
     }
   `
   document.head.appendChild(style)
@@ -324,13 +352,8 @@ export async function exportarCalendarioPDFPaginas(
       format: [ancho, alto],
     })
 
-    // Contenedor temporal fuera de pantalla
     const wrap = document.createElement('div')
-    wrap.style.cssText = `
-      position:fixed; left:-9999px; top:0;
-      width:794px; height:1122px;
-      overflow:hidden; box-sizing:border-box;
-    `
+    wrap.style.cssText = `position:fixed;left:-9999px;top:0;width:794px;height:1122px;overflow:hidden;box-sizing:border-box;`
     document.body.appendChild(wrap)
 
     for (let idx = 0; idx < MESES_LIST.length; idx++) {
@@ -344,35 +367,33 @@ export async function exportarCalendarioPDFPaginas(
         const col = !dia ? 'transparent' : isHoy ? 'white' : esDom ? paleta.acento : paleta.texto
         const bg  = isHoy ? paleta.acento : 'transparent'
         const fw  = isHoy ? 700 : esDom ? 600 : 400
-        return `<div style="text-align:center;font-size:16px;color:${col};background:${bg};border-radius:50%;width:32px;height:32px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:${fw};">${dia||''}</div>`
+        return `<div style="text-align:center;font-size:18px;color:${col};background:${bg};border-radius:50%;width:36px;height:36px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:${fw};">${dia||''}</div>`
       }).join('')
 
       const fotoStyle = fotos[idx]
         ? `background:url('${fotos[idx]}') center/cover no-repeat`
-        : `background:linear-gradient(135deg,${paleta.header}dd,${paleta.acento}99)`
+        : `background:linear-gradient(135deg,${paleta.header}ee,${paleta.acento}cc)`
 
       const fotoSec = tipo === 'pared' ? `
-        <div style="height:300px;${fotoStyle};border-radius:14px 14px 0 0;position:relative;">
-          <div style="position:absolute;bottom:16px;left:20px;font-size:28px;font-weight:800;color:white;text-shadow:0 2px 10px rgba(0,0,0,0.7);font-family:${fuente};">${mes}</div>
+        <div style="flex:1;${fotoStyle};position:relative;min-height:0;">
+          <div style="position:absolute;bottom:20px;left:28px;font-size:32px;font-weight:900;color:white;text-shadow:0 2px 12px rgba(0,0,0,0.7);font-family:${fuente};letter-spacing:2px;">${mes.toUpperCase()}</div>
         </div>` : ''
 
       const mesHead = tipo === 'mesa' ? `
-        <div style="font-size:32px;font-weight:800;color:${paleta.header};text-align:center;margin-bottom:20px;letter-spacing:2px;font-family:${fuente};">${mes.toUpperCase()}</div>` : ''
+        <div style="font-size:36px;font-weight:900;color:${paleta.header};text-align:center;margin-bottom:20px;letter-spacing:3px;font-family:${fuente};">${mes.toUpperCase()}</div>` : ''
 
       wrap.innerHTML = `
-        <div style="width:100%;height:100%;background:${paleta.fondo};display:flex;align-items:center;justify-content:center;padding:40px;box-sizing:border-box;font-family:${fuente};">
-          <div style="width:100%;max-width:620px;background:${paleta.fondo==='#0f172a'?'#1e293b':'white'};border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.12);border:1px solid ${paleta.acento}33;">
-            ${fotoSec}
-            <div style="padding:32px;">
-              <div style="text-align:center;margin-bottom:20px;">
-                <div style="font-size:14px;font-weight:600;color:${paleta.acento};letter-spacing:1px;">${titulo.toUpperCase()} · ${anio}</div>
-              </div>
-              ${mesHead}
-              <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:10px;">
-                ${DIAS_LIST.map(d=>`<div style="text-align:center;font-size:13px;font-weight:700;color:${paleta.acento};padding:6px 0;">${d}</div>`).join('')}
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${celdas}</div>
+        <div style="width:794px;height:1122px;background:${paleta.fondo};display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;font-family:${fuente};">
+          ${fotoSec}
+          <div style="padding:${tipo==='pared'?'24px 32px 28px':'40px 32px 28px'};display:flex;flex-direction:column;background:${paleta.fondo==='#0f172a'?'#1e293b':'white'};${tipo==='mesa'?'flex:1;':''}">
+            <div style="text-align:center;margin-bottom:16px;">
+              <div style="font-size:13px;font-weight:700;color:${paleta.acento};letter-spacing:2px;">${titulo.toUpperCase()} · ${anio}</div>
             </div>
+            ${mesHead}
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:10px;">
+              ${DIAS_LIST.map(d=>`<div style="text-align:center;font-size:14px;font-weight:700;color:${paleta.acento};padding:8px 0;">${d}</div>`).join('')}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${celdas}</div>
           </div>
         </div>`
 

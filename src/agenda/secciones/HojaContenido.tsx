@@ -1,6 +1,5 @@
 /* eslint-disable */
 import { AgendaConfig } from '../types'
-import { MESES } from '../../constants'
 
 type Modo = 'notas' | 'tareas' | 'contactos' | 'financiera' | 'habitos'
 

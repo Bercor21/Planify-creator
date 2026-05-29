@@ -109,14 +109,51 @@ export default function WizardAgenda({ setVista, guardarDiseno }: {
     const style = document.createElement('style')
     style.id = 'print-agenda-style'
     style.innerHTML = `
-      @page { margin: 0 !important; padding: 0 !important; size: auto; }
-      html, body { margin: 0 !important; padding: 0 !important; }
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      @page {
+        size: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        bleed: 0 !important;
+      }
+      html {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100vw !important;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
       @media screen { #print-agenda-root { display: none; } }
       @media print {
         body > *:not(#print-agenda-root) { display: none !important; }
-        #print-agenda-root { display: block !important; margin: 0 !important; padding: 0 !important; }
-        #print-agenda-root > * { display: block !important; margin: 0 !important; padding: 0 !important; }
+        #print-agenda-root {
+          display: block !important;
+          width: 100vw !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        #print-agenda-root > * {
+          display: block !important;
+          width: 100vw !important;
+          min-height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          page-break-after: always !important;
+          page-break-inside: avoid !important;
+          overflow: hidden !important;
+        }
+        #print-agenda-root > *:last-child {
+          page-break-after: auto !important;
+        }
       }
     `
     document.head.appendChild(style)
