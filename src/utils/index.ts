@@ -2,7 +2,6 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { TAMANOS_MM } from '../constants'
 
-// ── Mapeo de tamaños para @page CSS ──────────────────────────────────────────
 const PAGE_SIZES_CSS: Record<string, string> = {
   carta:     '215.9mm 279.4mm',
   oficio:    '215.9mm 330.2mm',
@@ -32,23 +31,19 @@ function getPageCSS(tamano: string): string {
       padding: 0 !important;
       bleed: 0 !important;
     }
-    html {
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-    }
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100vw !important;
-    }
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
+    html { margin:0 !important; padding:0 !important; width:100% !important; height:100% !important; }
+    body { margin:0 !important; padding:0 !important; width:100vw !important; }
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
   `
+}
+
+// Tipo para el logo
+type LogoData = { src: string; x: number; y: number; size: number; opacity: number } | undefined
+
+// HTML del logo para inyectar en cada mes
+function logoHTML(logo: LogoData): string {
+  if (!logo) return ''
+  return `<div style="position:absolute;left:${logo.x}%;top:${logo.y}%;width:${logo.size}px;height:${logo.size}px;border-radius:50%;background:url('${logo.src}') center/cover no-repeat;opacity:${logo.opacity};transform:translate(-50%,-50%);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid rgba(255,255,255,0.7);pointer-events:none;"></div>`
 }
 
 export function getDias(anio: number, mes: number) {
@@ -66,7 +61,6 @@ export function showToast(set: (v: string | null) => void, msg: string, ms = 280
   setTimeout(() => set(null), ms)
 }
 
-// ── PDF de un solo elemento (captura completa) ───────────────────────────────
 export async function exportarPDF(
   elementId: string,
   nombre: string,
@@ -79,20 +73,10 @@ export async function exportarPDF(
   setExportando(true)
   try {
     await new Promise(r => setTimeout(r, 500))
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-    })
+    const canvas = await html2canvas(el, { scale:2, useCORS:true, allowTaint:true, backgroundColor:'#ffffff', logging:false })
     const imgData = canvas.toDataURL('image/jpeg', 0.92)
     const [ancho, alto] = TAMANOS_MM[tamano] ?? [210, 297]
-    const pdf = new jsPDF({
-      orientation: ancho > alto ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: [ancho, alto],
-    })
+    const pdf = new jsPDF({ orientation: ancho > alto ? 'landscape' : 'portrait', unit:'mm', format:[ancho, alto] })
     pdf.addImage(imgData, 'JPEG', 0, 0, ancho, alto)
     const blob = pdf.output('blob')
     const url  = URL.createObjectURL(blob)
@@ -102,13 +86,11 @@ export async function exportarPDF(
     setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url) }, 1500)
     showToast(setToast, '✅ PDF descargado correctamente')
   } catch (e: any) {
-    console.error('PDF Error:', e)
     showToast(setToast, `❌ Error: ${e?.message ?? 'No se pudo generar el PDF'}`)
   }
   setExportando(false)
 }
 
-// ── PDF multi-página: captura cada sección [data-page] como una hoja ─────────
 export async function exportarPDFPaginas(
   previewId: string,
   nombre: string,
@@ -122,12 +104,7 @@ export async function exportarPDFPaginas(
 
   try {
     const [ancho, alto] = TAMANOS_MM[tamano] ?? [210, 297]
-    const pdf = new jsPDF({
-      orientation: ancho > alto ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: [ancho, alto],
-    })
-
+    const pdf = new jsPDF({ orientation: ancho > alto ? 'landscape' : 'portrait', unit:'mm', format:[ancho, alto] })
     const secciones = Array.from(container.querySelectorAll('[data-page]')) as HTMLElement[]
 
     if (secciones.length === 0) {
@@ -142,31 +119,26 @@ export async function exportarPDFPaginas(
     document.body.appendChild(wrap)
 
     for (let i = 0; i < secciones.length; i++) {
-      const seccion = secciones[i]
-      const clone = seccion.cloneNode(true) as HTMLElement
-      clone.style.width    = '794px'
+      const clone = secciones[i].cloneNode(true) as HTMLElement
+      clone.style.width     = '794px'
       clone.style.minHeight = '1122px'
       clone.style.pageBreakAfter = 'unset'
       wrap.innerHTML = ''
       wrap.appendChild(clone)
 
-      await new Promise(r => setTimeout(r, 150))
+      await new Promise(r => setTimeout(r, 100))
 
       const canvas = await html2canvas(wrap, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width:  794,
-        height: Math.max(1122, clone.scrollHeight),
+        scale:1.5, useCORS:true, allowTaint:true,
+        backgroundColor:'#ffffff', logging:false,
+        width:794, height:Math.max(1122, clone.scrollHeight),
       })
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.90)
+      const imgData = canvas.toDataURL('image/jpeg', 0.88)
       if (i > 0) pdf.addPage([ancho, alto])
       pdf.addImage(imgData, 'JPEG', 0, 0, ancho, alto)
 
-      showToast(setToast, `⏳ Página ${i + 1} de ${secciones.length}...`)
+      if (i % 5 === 0) showToast(setToast, `⏳ Página ${i + 1} de ${secciones.length}...`)
     }
 
     document.body.removeChild(wrap)
@@ -179,13 +151,11 @@ export async function exportarPDFPaginas(
     setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url) }, 2000)
     showToast(setToast, `✅ PDF de ${secciones.length} páginas descargado`)
   } catch (e: any) {
-    console.error('PDF Error:', e)
     showToast(setToast, `❌ Error: ${e?.message ?? 'No se pudo generar el PDF'}`)
   }
   setExportando(false)
 }
 
-// ── Imprimir elemento genérico ────────────────────────────────────────────────
 export function imprimirElemento(id: string, tamano = 'a4') {
   const el = document.getElementById(id)
   if (!el) return
@@ -203,33 +173,18 @@ export function imprimirElemento(id: string, tamano = 'a4') {
   style.id = 'print-generic-style'
   style.innerHTML = `
     ${getPageCSS(tamano)}
-    @media screen { #print-generic-root { display: none; } }
+    @media screen { #print-generic-root { display:none; } }
     @media print {
-      body > *:not(#print-generic-root) { display: none !important; }
-      #print-generic-root {
-        display: block !important;
-        width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      #print-generic-root > * {
-        width: 100vw !important;
-        min-height: 100vh !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
-        page-break-after: always !important;
-      }
+      body > *:not(#print-generic-root) { display:none !important; }
+      #print-generic-root { display:block !important; width:100vw !important; margin:0 !important; padding:0 !important; }
+      #print-generic-root > * { width:100vw !important; min-height:100vh !important; margin:0 !important; padding:0 !important; box-sizing:border-box !important; page-break-after:always !important; }
     }
   `
   document.head.appendChild(style)
-  setTimeout(() => {
-    window.print()
-    setTimeout(() => { container.remove(); style.remove() }, 1000)
-  }, 300)
+  setTimeout(() => { window.print(); setTimeout(() => { container.remove(); style.remove() }, 1000) }, 300)
 }
 
-// ── Imprimir calendario mes a mes ─────────────────────────────────────────────
+// ── Imprimir calendario mes a mes (con logo) ──────────────────────────────────
 export function imprimirCalendarioMesAMes(
   anio: number,
   titulo: string,
@@ -239,7 +194,8 @@ export function imprimirCalendarioMesAMes(
   fotos: Record<number, string>,
   MESES: string[],
   DIAS: string[],
-  tamano = 'carta'
+  tamano = 'carta',
+  logo?: LogoData
 ) {
   const previo = document.getElementById('print-calendario-root')
   if (previo) previo.remove()
@@ -266,6 +222,7 @@ export function imprimirCalendarioMesAMes(
 
     const fotoSection = tipo === 'pared' ? `
       <div style="flex:1;${fotoStyle};position:relative;min-height:0;">
+        ${logoHTML(logo)}
         <div style="position:absolute;bottom:20px;left:28px;font-size:32px;font-weight:900;color:white;text-shadow:0 2px 12px rgba(0,0,0,0.7);font-family:${fuente};letter-spacing:2px;">${mes.toUpperCase()}</div>
       </div>` : ''
 
@@ -273,19 +230,18 @@ export function imprimirCalendarioMesAMes(
       <div style="font-size:36px;font-weight:900;color:${paleta.header};text-align:center;margin-bottom:20px;letter-spacing:3px;font-family:${fuente};">${mes.toUpperCase()}</div>` : ''
 
     return `
-      <div class="mes-pagina" style="page-break-after:${isLast ? 'auto' : 'always'};width:100vw;height:100vh;background:${paleta.fondo};display:flex;flex-direction:column;box-sizing:border-box;margin:0;padding:0;overflow:hidden;font-family:${fuente};">
+      <div class="mes-pagina" style="page-break-after:${isLast?'auto':'always'};width:100vw;height:100vh;background:${paleta.fondo};display:flex;flex-direction:column;box-sizing:border-box;margin:0;padding:0;overflow:hidden;font-family:${fuente};position:relative;">
+        ${tipo === 'mesa' ? logoHTML(logo) : ''}
         ${fotoSection}
-        <div style="padding:${tipo === 'pared' ? '24px 32px 28px' : '40px 32px 28px'};display:flex;flex-direction:column;background:${paleta.fondo === '#0f172a' ? '#1e293b' : 'white'};${tipo === 'mesa' ? 'flex:1;' : ''}">
+        <div style="padding:${tipo==='pared'?'24px 32px 28px':'40px 32px 28px'};display:flex;flex-direction:column;background:${paleta.fondo==='#0f172a'?'#1e293b':'white'};${tipo==='mesa'?'flex:1;':''}">
           <div style="text-align:center;margin-bottom:16px;">
             <div style="font-size:13px;font-weight:700;color:${paleta.acento};letter-spacing:2px;">${titulo.toUpperCase()} · ${anio}</div>
           </div>
           ${mesHeader}
           <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:10px;">
-            ${DIAS.map(d => `<div style="text-align:center;font-size:14px;font-weight:700;color:${paleta.acento};padding:8px 0;">${d}</div>`).join('')}
+            ${DIAS.map(d=>`<div style="text-align:center;font-size:14px;font-weight:700;color:${paleta.acento};padding:8px 0;">${d}</div>`).join('')}
           </div>
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;flex:1;">
-            ${celdasHTML}
-          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;flex:1;">${celdasHTML}</div>
         </div>
       </div>`
   }).join('')
@@ -299,35 +255,18 @@ export function imprimirCalendarioMesAMes(
   style.id = 'print-calendario-style'
   style.innerHTML = `
     ${getPageCSS(tamano)}
-    @media screen { #print-calendario-root { display: none; } }
+    @media screen { #print-calendario-root { display:none; } }
     @media print {
-      body > *:not(#print-calendario-root) { display: none !important; }
-      #print-calendario-root {
-        display: block !important;
-        width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      .mes-pagina {
-        width: 100vw !important;
-        height: 100vh !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
-        page-break-after: always !important;
-        page-break-inside: avoid !important;
-        overflow: hidden !important;
-      }
+      body > *:not(#print-calendario-root) { display:none !important; }
+      #print-calendario-root { display:block !important; width:100vw !important; margin:0 !important; padding:0 !important; }
+      .mes-pagina { width:100vw !important; height:100vh !important; margin:0 !important; padding:0 !important; box-sizing:border-box !important; page-break-after:always !important; page-break-inside:avoid !important; overflow:hidden !important; }
     }
   `
   document.head.appendChild(style)
-  setTimeout(() => {
-    window.print()
-    setTimeout(() => { container.remove(); style.remove() }, 1000)
-  }, 300)
+  setTimeout(() => { window.print(); setTimeout(() => { container.remove(); style.remove() }, 1000) }, 300)
 }
 
-// ── PDF mes a mes para el calendario ─────────────────────────────────────────
+// ── PDF mes a mes para el calendario (con logo) ───────────────────────────────
 export async function exportarCalendarioPDFPaginas(
   anio: number,
   titulo: string,
@@ -339,18 +278,15 @@ export async function exportarCalendarioPDFPaginas(
   DIAS_LIST: string[],
   tamano: string,
   setExportando: (v: boolean) => void,
-  setToast: (v: string | null) => void
+  setToast: (v: string | null) => void,
+  logo?: LogoData
 ) {
   setExportando(true)
   showToast(setToast, '⏳ Generando PDF — 12 páginas...')
 
   try {
     const [ancho, alto] = TAMANOS_MM[tamano] ?? [215.9, 279.4]
-    const pdf = new jsPDF({
-      orientation: ancho > alto ? 'landscape' : 'portrait',
-      unit: 'mm',
-      format: [ancho, alto],
-    })
+    const pdf = new jsPDF({ orientation: ancho > alto ? 'landscape' : 'portrait', unit:'mm', format:[ancho, alto] })
 
     const wrap = document.createElement('div')
     wrap.style.cssText = `position:fixed;left:-9999px;top:0;width:794px;height:1122px;overflow:hidden;box-sizing:border-box;`
@@ -376,6 +312,7 @@ export async function exportarCalendarioPDFPaginas(
 
       const fotoSec = tipo === 'pared' ? `
         <div style="flex:1;${fotoStyle};position:relative;min-height:0;">
+          ${logoHTML(logo)}
           <div style="position:absolute;bottom:20px;left:28px;font-size:32px;font-weight:900;color:white;text-shadow:0 2px 12px rgba(0,0,0,0.7);font-family:${fuente};letter-spacing:2px;">${mes.toUpperCase()}</div>
         </div>` : ''
 
@@ -383,7 +320,8 @@ export async function exportarCalendarioPDFPaginas(
         <div style="font-size:36px;font-weight:900;color:${paleta.header};text-align:center;margin-bottom:20px;letter-spacing:3px;font-family:${fuente};">${mes.toUpperCase()}</div>` : ''
 
       wrap.innerHTML = `
-        <div style="width:794px;height:1122px;background:${paleta.fondo};display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;font-family:${fuente};">
+        <div style="width:794px;height:1122px;background:${paleta.fondo};display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;font-family:${fuente};position:relative;">
+          ${tipo === 'mesa' ? logoHTML(logo) : ''}
           ${fotoSec}
           <div style="padding:${tipo==='pared'?'24px 32px 28px':'40px 32px 28px'};display:flex;flex-direction:column;background:${paleta.fondo==='#0f172a'?'#1e293b':'white'};${tipo==='mesa'?'flex:1;':''}">
             <div style="text-align:center;margin-bottom:16px;">
@@ -397,18 +335,17 @@ export async function exportarCalendarioPDFPaginas(
           </div>
         </div>`
 
-      await new Promise(r => setTimeout(r, 200))
+      await new Promise(r => setTimeout(r, 150))
 
       const canvas = await html2canvas(wrap, {
-        scale: 2, useCORS: true, allowTaint: true,
-        backgroundColor: paleta.fondo, logging: false,
-        width: 794, height: 1122,
+        scale:1.5, useCORS:true, allowTaint:true,
+        backgroundColor:paleta.fondo, logging:false,
+        width:794, height:1122,
       })
 
-      const img = canvas.toDataURL('image/jpeg', 0.92)
+      const img = canvas.toDataURL('image/jpeg', 0.90)
       if (idx > 0) pdf.addPage([ancho, alto])
       pdf.addImage(img, 'JPEG', 0, 0, ancho, alto)
-
       showToast(setToast, `⏳ Página ${idx + 1} de 12...`)
     }
 
@@ -423,9 +360,7 @@ export async function exportarCalendarioPDFPaginas(
     showToast(setToast, '✅ PDF de 12 páginas descargado')
 
   } catch (e: any) {
-    console.error('PDF Error:', e)
     showToast(setToast, `❌ Error: ${e?.message ?? 'No se pudo generar el PDF'}`)
   }
-
   setExportando(false)
 }

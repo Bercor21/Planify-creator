@@ -148,9 +148,9 @@ export default function EditorCalendario({ setVista, guardarDiseno }: {
             {guardado ? '✅ Guardado' : '💾 Guardar'}
           </button>
           <BotonesExportar
-            onPDF={() => exportarCalendarioPDFPaginas(anio, titulo, paleta, fuente, tipo, fotos, MESES, DIAS, tamano, setExp, setToast)}
+            onPDF={() => exportarCalendarioPDFPaginas(anio, titulo, paleta, fuente, tipo, fotos, MESES, DIAS, tamano, setExp, setToast, logo ? { src:logo, x:logoX, y:logoY, size:logoSize, opacity:logoOpacity } : undefined)}
             onPDFCompleto={() => exportarPDF('calendario-preview', `${titulo}-${anio}.pdf`, tamano, setExp, setToast)}
-            onImprimir={() => imprimirCalendarioMesAMes(anio, titulo, paleta, fuente, tipo, fotos, MESES, DIAS, tamano)}
+            onImprimir={() => imprimirCalendarioMesAMes(anio, titulo, paleta, fuente, tipo, fotos, MESES, DIAS, tamano, logo ? { src:logo, x:logoX, y:logoY, size:logoSize, opacity:logoOpacity } : undefined)}
             exportando={exportando}
           />
         </div>
