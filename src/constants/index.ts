@@ -1,5 +1,5 @@
-export const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-export const DIAS  = ['L','M','X','J','V','S','D']
+export const MESES   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+export const DIAS    = ['L','M','X','J','V','S','D']
 
 export const FUENTES = [
   'Playfair Display','Georgia','Arial','Helvetica',
@@ -20,6 +20,7 @@ export const PALETAS = [
 
 export type Paleta = typeof PALETAS[0]
 
+// ── Tamaños para CALENDARIO y PLANIFICADOR ────────────────────────────────────
 export const TAMANOS = [
   { cat:'ESTÁNDAR', items:[
     { id:'carta',     nombre:'Carta',     dim:'21.6 × 27.9 cm' },
@@ -30,11 +31,10 @@ export const TAMANOS = [
     { id:'a4', nombre:'A4', dim:'21.0 × 29.7 cm' },
     { id:'a3', nombre:'A3', dim:'29.7 × 42.0 cm' },
     { id:'a5', nombre:'A5', dim:'14.8 × 21.0 cm' },
-    { id:'a6', nombre:'A6', dim:'10.5 × 14.8 cm' },
   ]},
   { cat:'GRANDE', items:[
-    { id:'tabloide', nombre:'Tabloide',   dim:'27.9 × 43.2 cm' },
-    { id:'11x17',    nombre:'11" × 17"', dim:'27.9 × 43.2 cm' },
+    { id:'tabloide', nombre:'Tabloide',    dim:'27.9 × 43.2 cm' },
+    { id:'11x17',    nombre:'11" × 17"',  dim:'27.9 × 43.2 cm' },
     { id:'60x90',    nombre:'60 × 90 cm', dim:'60.0 × 90.0 cm' },
   ]},
   { cat:'ESPECIAL', items:[
@@ -43,9 +43,22 @@ export const TAMANOS = [
 ]
 
 export const TAMANOS_MM: Record<string,[number,number]> = {
+  // ── Agenda y Planificador ──────────────────────────────────────────────────
+  // Compactos
+  bolsillo:[90,140], a6:[105,148], b6:[125,176],
+  // Estándar
+  a5:[148,210], b5:[176,250], a4:[210,297],
+  // Escritorio (horizontal)
+  'escritorio-s':[210,150], 'escritorio-m':[300,210], 'escritorio-l':[420,297],
+  // Legacy / otros
   carta:[215.9,279.4], oficio:[215.9,330.2], ejecutivo:[184.1,266.7],
-  a4:[210,297], a3:[297,420], a5:[148,210], a6:[105,148],
-  tabloide:[279.4,431.8], '11x17':[279.4,431.8], '60x90':[600,900], cuaderno:[160,215],
+  a3:[297,420], tabloide:[279.4,431.8], '11x17':[279.4,431.8],
+  '60x90':[600,900], cuaderno:[160,215],
+  // ── Calendario ────────────────────────────────────────────────────────────
+  'pared-a4':[210,297],   'pared-carta':[215.9,279.4],
+  'pared-a3':[420,297],   'pared-tabloide':[279.4,431.8],
+  'poster-30':[300,300],  'poster-50':[500,700],
+  'escritorio-cal-s':[150,210], 'escritorio-cal-m':[150,230],
 }
 
 export const PAPELES = [
@@ -55,32 +68,56 @@ export const PAPELES = [
   { id:'reciclado', nombre:'Reciclado', desc:'Ecológico'              },
 ]
 
+// ── Tamaños para AGENDA ───────────────────────────────────────────────────────
 export const TAMANOS_AGENDA = [
-  { cat:'BOLSILLO', items:[
-    { id:'bolsillo',     nombre:'Bolsillo',     dim:'10 × 15 cm',   horiz:false },
-  ]},
-  { cat:'CUADERNO', items:[
-    { id:'cuaderno-s',   nombre:'Cuaderno S',   dim:'14 × 21 cm',   horiz:false },
-    { id:'cuaderno-m',   nombre:'Cuaderno M',   dim:'17 × 24 cm',   horiz:false },
+  { cat:'COMPACTO', items:[
+    { id:'bolsillo', nombre:'Bolsillo / Pocket', dim:'9 × 14 cm',     horiz:false, desc:'Ultracompacta, siempre a la mano'       },
+    { id:'a6',       nombre:'A6',                dim:'10.5 × 14.8 cm',horiz:false, desc:'Muy portátil, bolsos pequeños'          },
+    { id:'b6',       nombre:'B6',                dim:'12.5 × 17.6 cm',horiz:false, desc:'Versátil, journaling y portátiles'      },
   ]},
   { cat:'ESTÁNDAR', items:[
-    { id:'a5',           nombre:'A5',           dim:'14.8 × 21 cm', horiz:false },
-    { id:'carta',        nombre:'Carta',        dim:'21.6 × 27.9 cm', horiz:false },
-    { id:'a4',           nombre:'A4',           dim:'21 × 29.7 cm', horiz:false },
+    { id:'a5',       nombre:'A5',                dim:'14.8 × 21 cm',  horiz:false, desc:'El más popular, mochila y bolso'        },
+    { id:'b5',       nombre:'B5',                dim:'17.6 × 25 cm',  horiz:false, desc:'Profesional, buen espacio de escritura' },
+    { id:'a4',       nombre:'A4',                dim:'21 × 29.7 cm',  horiz:false, desc:'Máximo espacio, oficinas y docentes'    },
   ]},
   { cat:'ESCRITORIO', items:[
-    { id:'escritorio-s', nombre:'Escritorio S', dim:'21 × 15 cm',   horiz:true  },
-    { id:'escritorio-m', nombre:'Escritorio M', dim:'30 × 21 cm',   horiz:true  },
-    { id:'escritorio-l', nombre:'Escritorio L', dim:'42 × 29.7 cm', horiz:true  },
+    { id:'escritorio-s', nombre:'Escritorio S', dim:'21 × 15 cm',     horiz:true,  desc:'Formato horizontal compacto'           },
+    { id:'escritorio-m', nombre:'Escritorio M', dim:'30 × 21 cm',     horiz:true,  desc:'Escritorio estándar'                   },
+    { id:'escritorio-l', nombre:'Escritorio L', dim:'42 × 29.7 cm',   horiz:true,  desc:'Escritorio grande'                     },
   ]},
 ]
 
 export const TIPOS_AGENDA = [
-  { id:'personal',     icon:'📓', nombre:'Agenda Personal',        desc:'Planificación diaria con espacio para notas y metas',    tags:['Semanal','Notas','Metas']        },
-  { id:'ejecutiva',    icon:'💼', nombre:'Agenda Ejecutiva',        desc:'Profesional con reuniones, prioridades y seguimiento',   tags:['Reuniones','Prioridades']         },
-  { id:'planificador', icon:'📋', nombre:'Planificador',            desc:'Vista semanal y mensual con objetivos y proyectos',      tags:['Vista semanal','Proyectos']       },
-  { id:'cuaderno',     icon:'📔', nombre:'Cuaderno',                desc:'Hojas rayadas, cuadriculadas o en blanco para escribir', tags:['Blanco','Rayado','Cuadriculado']  },
-  { id:'escritorio',   icon:'🖥️', nombre:'Planificador Escritorio', desc:'Formato horizontal para tu escritorio',                 tags:['Semanal','Grande','Horizontal']   },
+  {
+    id:'personal', icon:'📓', nombre:'Agenda Personal',
+    desc:'Planificación diaria para uso personal y académico.',
+    tags:['Semanal','Notas','Metas'],
+    secciones:['portada','datos_personales','calendario_anual','metas_anio','planificacion_mensual','planificacion_semanal','tareas_pendientes','habitos','fechas_importantes','notas','contactos'],
+  },
+  {
+    id:'ejecutiva', icon:'💼', nombre:'Agenda Ejecutiva',
+    desc:'Orientada a profesionales y empresas.',
+    tags:['Reuniones','Prioridades'],
+    secciones:['portada','info_profesional','calendario_anual','agenda_diaria','reuniones','prioridades','proyectos','control_llamadas','objetivos_trimestrales','notas_ejecutivas','contactos'],
+  },
+  {
+    id:'planificador', icon:'📋', nombre:'Planificador',
+    desc:'Diseñado para organizar proyectos y objetivos.',
+    tags:['Vista semanal','Proyectos'],
+    secciones:['portada','objetivos_generales','planificacion_mensual','vista_semanal','proyectos','tareas','cronogramas','ideas','notas'],
+  },
+  {
+    id:'cuaderno', icon:'📔', nombre:'Cuaderno',
+    desc:'Para escritura libre y apuntes.',
+    tags:['Blanco','Rayado','Cuadriculado'],
+    secciones:['portada','indice','hojas_rayadas','hojas_cuadriculadas','hojas_blanco','notas'],
+  },
+  {
+    id:'escritorio', icon:'🖥️', nombre:'Planificador Escritorio',
+    desc:'Formato horizontal para escritorio u oficina.',
+    tags:['Semanal','Grande','Horizontal'],
+    secciones:['portada','calendario_mensual','vista_semanal_horiz','tareas_prioritarias','recordatorios','notas_rapidas'],
+  },
 ]
 
 export type Vista   = 'home' | 'calendario' | 'agenda' | 'planificador'

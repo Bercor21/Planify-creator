@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { useState } from 'react'
-import { PALETAS, TIPOS_AGENDA, TAMANOS_AGENDA } from '../constants'
+import { PALETAS, TIPOS_AGENDA, TAMANOS_AGENDA, Paleta } from '../constants'
 import { exportarPDF, exportarPDFPaginas, showToast } from '../utils'
 import { AgendaConfig } from './types'
 import BtnVolver       from '../components/BtnVolver'
@@ -19,6 +19,8 @@ import Planeador         from './secciones/Planeador'
 import HojaContenido     from './secciones/HojaContenido'
 import BolsilloInterno   from './secciones/BolsilloInterno'
 import HojasFinales      from './secciones/HojasFinales'
+import MetasAnio         from './secciones/MetasAnio'
+import FechasImportantes from './secciones/FechasImportantes'
 
 const CONFIG_DEFAULT: AgendaConfig = {
   titulo:               'Mi Agenda',
@@ -51,11 +53,14 @@ const CONFIG_DEFAULT: AgendaConfig = {
 
 // Proporciones de papel (ancho/alto) para la preview
 const PAPER_ASPECT: Record<string, number> = {
-  a5: 148/210, a4: 210/297, carta: 216/279, oficio: 216/330,
-  ejecutivo: 184/267, a3: 297/420, a6: 105/148,
-  tabloide: 279/432, '11x17': 279/432, cuaderno: 160/215,
-  bolsillo: 100/150, 'cuaderno-s': 140/210, 'cuaderno-m': 170/240,
+  // Agenda nuevos tamaños
+  bolsillo: 90/140, a6: 105/148, b6: 125/176,
+  a5: 148/210, b5: 176/250, a4: 210/297,
   'escritorio-s': 210/150, 'escritorio-m': 300/210, 'escritorio-l': 420/297,
+  // Legacy
+  carta: 216/279, oficio: 216/330, ejecutivo: 184/267, a3: 297/420,
+  tabloide: 279/432, cuaderno: 160/215,
+  'cuaderno-s': 140/210, 'cuaderno-m': 170/240,
 }
 
 export default function WizardAgenda({ setVista, guardarDiseno }: {
@@ -108,52 +113,35 @@ export default function WizardAgenda({ setVista, guardarDiseno }: {
 
     const style = document.createElement('style')
     style.id = 'print-agenda-style'
+    // Obtener CSS del tamaño correcto
+    const PAGE_SIZES_CSS: Record<string,string> = {
+      bolsillo:'90mm 140mm', a6:'105mm 148mm', b6:'125mm 176mm',
+      a5:'148mm 210mm', b5:'176mm 250mm', a4:'210mm 297mm',
+      'escritorio-s':'210mm 150mm','escritorio-m':'300mm 210mm','escritorio-l':'420mm 297mm',
+      carta:'215.9mm 279.4mm', oficio:'215.9mm 330.2mm',
+    }
+    const pageSize = PAGE_SIZES_CSS[config.tamano] ?? '148mm 210mm'
+
     style.innerHTML = `
       @page {
-        size: auto !important;
+        size: ${pageSize} !important;
         margin: 0 !important;
         padding: 0 !important;
         bleed: 0 !important;
       }
-      html {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-      }
-      body {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100vw !important;
-      }
-      * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-      @media screen { #print-agenda-root { display: none; } }
+      html { margin:0 !important; padding:0 !important; width:100% !important; height:100% !important; }
+      body { margin:0 !important; padding:0 !important; width:100vw !important; }
+      * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
+      @media screen { #print-agenda-root { display:none; } }
       @media print {
-        body > *:not(#print-agenda-root) { display: none !important; }
-        #print-agenda-root {
-          display: block !important;
-          width: 100vw !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
+        body > *:not(#print-agenda-root) { display:none !important; }
+        #print-agenda-root { display:block !important; width:100vw !important; margin:0 !important; padding:0 !important; }
         #print-agenda-root > * {
-          display: block !important;
-          width: 100vw !important;
-          min-height: 100vh !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          box-sizing: border-box !important;
-          page-break-after: always !important;
-          page-break-inside: avoid !important;
-          overflow: hidden !important;
+          display:block !important; width:100vw !important; min-height:100vh !important;
+          margin:0 !important; padding:0 !important; box-sizing:border-box !important;
+          page-break-after:always !important; page-break-inside:avoid !important; overflow:hidden !important;
         }
-        #print-agenda-root > *:last-child {
-          page-break-after: auto !important;
-        }
+        #print-agenda-root > *:last-child { page-break-after:auto !important; }
       }
     `
     document.head.appendChild(style)
@@ -289,15 +277,16 @@ export default function WizardAgenda({ setVista, guardarDiseno }: {
           <div key={cat.cat} style={{ marginBottom:'20px' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#94a3b8', letterSpacing:'1px', marginBottom:'10px' }}>{cat.cat}</div>
             <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
-              {cat.items.map(item => (
+              {(cat.items as any[]).map(item => (
                 <button key={item.id} onClick={() => { upd('tamano', item.id); setPaso(3) }} style={{
-                  padding:'16px 20px', borderRadius:'12px', cursor:'pointer', textAlign:'left', transition:'all 0.15s', minWidth:'140px',
-                  border: config.tamano === item.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
-                  background: config.tamano === item.id ? '#eff6ff' : 'white',
+                  padding:'16px', borderRadius:'12px', cursor:'pointer', textAlign:'left', transition:'all 0.15s',
+                  border: config.tamano === item.id ? `2px solid ${config.paleta.acento}` : '1px solid #e2e8f0',
+                  background: config.tamano === item.id ? config.paleta.acento + '12' : 'white',
                 }}>
                   <div style={{ fontSize:'13px', fontWeight:700, color:'#1e293b', marginBottom:'2px' }}>{item.nombre}</div>
-                  <div style={{ fontSize:'11px', color:'#94a3b8' }}>{item.dim}</div>
-                  {item.horiz && <div style={{ fontSize:'10px', color:'#3b82f6', marginTop:'4px', fontWeight:600 }}>↔ Horizontal</div>}
+                  <div style={{ fontSize:'11px', color:config.paleta.acento, fontWeight:600, marginBottom:'4px' }}>{item.dim}</div>
+                  {item.desc && <div style={{ fontSize:'10px', color:'#94a3b8', lineHeight:1.4 }}>{item.desc}</div>}
+                  {item.horiz && <div style={{ fontSize:'10px', color:config.paleta.acento, fontWeight:600, marginTop:'4px' }}>↔ Horizontal</div>}
                 </button>
               ))}
             </div>
@@ -544,6 +533,8 @@ export default function WizardAgenda({ setVista, guardarDiseno }: {
             <HojaPresentacion key="presentacion" config={config} />,
             <Indice key="indice" config={config} />,
             <CalendarioAnual key="cal-anual" config={config} />,
+            <MetasAnio key="metas" config={config} />,
+            <FechasImportantes key="fechas" config={config} />,
             ...[...Array(12)].flatMap((_, mesIdx) => [
               <SeparadorMensual key={`sep-${mesIdx}`} config={config} mesIndex={mesIdx} />,
               <Planeador key={`pln-m-${mesIdx}`} config={config} modo="mensual" mesIndex={mesIdx} />,

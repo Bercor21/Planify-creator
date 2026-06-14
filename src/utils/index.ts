@@ -3,23 +3,35 @@ import html2canvas from 'html2canvas'
 import { TAMANOS_MM } from '../constants'
 
 const PAGE_SIZES_CSS: Record<string, string> = {
+  // ── Agenda y Planificador ─────────────────────────────────────────────────
+  bolsillo:  '90mm 140mm',   // Pocket 9×14
+  a6:        '105mm 148mm',  // A6
+  b6:        '125mm 176mm',  // B6
+  a5:        '148mm 210mm',  // A5 (más popular)
+  b5:        '176mm 250mm',  // B5
+  a4:        '210mm 297mm',  // A4
+  // Escritorio horizontal
+  'escritorio-s': '210mm 150mm',
+  'escritorio-m': '300mm 210mm',
+  'escritorio-l': '420mm 297mm',
+  // Legacy
   carta:     '215.9mm 279.4mm',
   oficio:    '215.9mm 330.2mm',
   ejecutivo: '184.1mm 266.7mm',
-  a4:        '210mm 297mm',
   a3:        '297mm 420mm',
-  a5:        '148mm 210mm',
-  a6:        '105mm 148mm',
   tabloide:  '279.4mm 431.8mm',
   '11x17':   '279.4mm 431.8mm',
   '60x90':   '600mm 900mm',
   cuaderno:  '160mm 215mm',
-  bolsillo:     '100mm 150mm',
-  'cuaderno-s': '140mm 210mm',
-  'cuaderno-m': '170mm 240mm',
-  'escritorio-s': '210mm 150mm',
-  'escritorio-m': '300mm 210mm',
-  'escritorio-l': '420mm 297mm',
+  // ── Calendario ────────────────────────────────────────────────────────────
+  'pared-a4':          '210mm 297mm',
+  'pared-carta':       '215.9mm 279.4mm',
+  'pared-a3':          '420mm 297mm',
+  'pared-tabloide':    '279.4mm 431.8mm',
+  'poster-30':         '300mm 300mm',
+  'poster-50':         '500mm 700mm',
+  'escritorio-cal-s':  '150mm 210mm',
+  'escritorio-cal-m':  '150mm 230mm',
 }
 
 function getPageCSS(tamano: string): string {
@@ -114,14 +126,20 @@ export async function exportarPDFPaginas(
 
     showToast(setToast, `⏳ Generando ${secciones.length} páginas...`)
 
+    // Dimensiones exactas según tamaño elegido (96dpi: 1mm = 3.7795px)
+    const pxW = Math.round(ancho * 3.7795)
+    const pxH = Math.round(alto  * 3.7795)
+
     const wrap = document.createElement('div')
-    wrap.style.cssText = `position:fixed;left:-9999px;top:0;width:794px;overflow:visible;box-sizing:border-box;`
+    wrap.style.cssText = `position:fixed;left:-9999px;top:0;width:${pxW}px;overflow:hidden;box-sizing:border-box;`
     document.body.appendChild(wrap)
 
     for (let i = 0; i < secciones.length; i++) {
       const clone = secciones[i].cloneNode(true) as HTMLElement
-      clone.style.width     = '794px'
-      clone.style.minHeight = '1122px'
+      clone.style.width     = `${pxW}px`
+      clone.style.minHeight = `${pxH}px`
+      clone.style.maxHeight = `${pxH}px`
+      clone.style.overflow  = 'hidden'
       clone.style.pageBreakAfter = 'unset'
       wrap.innerHTML = ''
       wrap.appendChild(clone)
@@ -129,12 +147,12 @@ export async function exportarPDFPaginas(
       await new Promise(r => setTimeout(r, 100))
 
       const canvas = await html2canvas(wrap, {
-        scale:1.5, useCORS:true, allowTaint:true,
+        scale:2, useCORS:true, allowTaint:true,
         backgroundColor:'#ffffff', logging:false,
         width:794, height:Math.max(1122, clone.scrollHeight),
       })
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.88)
+      const imgData = canvas.toDataURL('image/jpeg', 0.92)
       if (i > 0) pdf.addPage([ancho, alto])
       pdf.addImage(imgData, 'JPEG', 0, 0, ancho, alto)
 
@@ -338,12 +356,12 @@ export async function exportarCalendarioPDFPaginas(
       await new Promise(r => setTimeout(r, 150))
 
       const canvas = await html2canvas(wrap, {
-        scale:1.5, useCORS:true, allowTaint:true,
+        scale:3, useCORS:true, allowTaint:true,
         backgroundColor:paleta.fondo, logging:false,
         width:794, height:1122,
       })
 
-      const img = canvas.toDataURL('image/jpeg', 0.90)
+      const img = canvas.toDataURL('image/jpeg', 0.95)
       if (idx > 0) pdf.addPage([ancho, alto])
       pdf.addImage(img, 'JPEG', 0, 0, ancho, alto)
       showToast(setToast, `⏳ Página ${idx + 1} de 12...`)

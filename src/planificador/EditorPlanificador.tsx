@@ -1,11 +1,10 @@
 /* eslint-disable */
 import { useState, useRef } from 'react'
-import { MESES, DIAS, PALETAS, Paleta } from '../constants'
+import { MESES, DIAS, PALETAS, TAMANOS_AGENDA, Paleta } from '../constants'
 import { getDias, exportarPDF, imprimirElemento, showToast } from '../utils'
 import BtnVolver       from '../components/BtnVolver'
 import SelectorFuente  from '../components/SelectorFuente'
 import BarraPaletas    from '../components/BarraPaletas'
-import PanelTamano     from '../components/PanelTamano'
 import BotonesExportar from '../components/BotonesExportar'
 import Toast           from '../components/Toast'
 
@@ -16,7 +15,8 @@ export default function EditorPlanificador({ setVista, guardarDiseno }: {
   const [vistaP,    setVistaP]    = useState<'semanal'|'mensual'|'diario'>('semanal')
   const [paleta,    setPaleta]    = useState<Paleta>(PALETAS[0])
   const [fuente,    setFuente]    = useState('Montserrat')
-  const [tamano,    setTamano]    = useState('a4')
+  const [tamano,    setTamano]    = useState('a5')  // A5 es el más común para planificadores
+  const tamActual = (TAMANOS_AGENDA as any[]).flatMap((c:any)=>c.items).find((t:any)=>t.id===tamano)
   const [papel,     setPapel]     = useState('bond')
   const [titulo,    setTitulo]    = useState('Mi Planificador')
   const [anio,      setAnio]      = useState(new Date().getFullYear())
@@ -88,7 +88,31 @@ export default function EditorPlanificador({ setVista, guardarDiseno }: {
         <div style={{ width:'1px', height:'24px', background:'#e2e8f0' }}/>
 
         <SelectorFuente fuente={fuente} setFuente={setFuente} />
-        <PanelTamano tamano={tamano} setTamano={setTamano} papel={papel} setPapel={setPapel} show={showPanel} setShow={setShowPanel} />
+        {/* Selector de tamaño con TAMANOS_AGENDA */}
+        <div style={{ position:'relative' }}>
+          <button onClick={() => setShowPanel(!showPanel)} style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid #e2e8f0', background:'white', cursor:'pointer', fontSize:'12px' }}>
+            📄 {tamActual?.nombre ?? tamano} ▾
+          </button>
+          {showPanel && (
+            <div onClick={(e:any)=>e.stopPropagation()} style={{ position:'absolute', top:'calc(100% + 4px)', left:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 10px 30px rgba(0,0,0,0.12)', padding:'14px', zIndex:300, width:'280px', maxHeight:'400px', overflowY:'auto' }}>
+              <div style={{ fontSize:'11px', fontWeight:700, color:'#94a3b8', marginBottom:'10px', letterSpacing:'1px' }}>TAMAÑO DE PAPEL</div>
+              {TAMANOS_AGENDA.map(cat => (
+                <div key={cat.cat} style={{ marginBottom:'12px' }}>
+                  <div style={{ fontSize:'10px', fontWeight:700, color:'#94a3b8', letterSpacing:'1px', marginBottom:'6px' }}>{cat.cat}</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px' }}>
+                    {cat.items.map(item => (
+                      <button key={item.id} onClick={() => { setTamano(item.id); setShowPanel(false) }} style={{ padding:'8px', borderRadius:'8px', textAlign:'left', cursor:'pointer', border:'none', background: tamano===item.id ? '#eff6ff' : '#f8fafc', outline: tamano===item.id ? '2px solid #3b82f6' : 'none' }}>
+                        <div style={{ fontSize:'11px', fontWeight:700, color:'#1e293b' }}>{item.nombre}</div>
+                        <div style={{ fontSize:'10px', color:'#94a3b8' }}>{item.dim}</div>
+                        {item.horiz && <div style={{ fontSize:'9px', color:'#3b82f6', fontWeight:600 }}>↔ Horizontal</div>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Año siempre visible */}
         <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
