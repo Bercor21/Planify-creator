@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { useState } from 'react'
-import { PALETAS, TIPOS_AGENDA, TAMANOS_AGENDA, Paleta } from '../constants'
+import { PALETAS, TIPOS_AGENDA, TAMANOS_AGENDA } from '../constants'
 import { exportarPDF, exportarPDFPaginas, showToast } from '../utils'
 import { AgendaConfig } from './types'
 import BtnVolver       from '../components/BtnVolver'
