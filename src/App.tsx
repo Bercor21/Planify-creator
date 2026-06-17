@@ -8,6 +8,7 @@ import EditorPlanificador from './planificador/EditorPlanificador'
 
 export default function App() {
   const [vista,   setVista]   = useState<Vista>('home')
+  const [disenoAbierto, setDisenoAbierto] = useState<Diseno | null>(null)
 
   // ── Carga desde localStorage al iniciar ──────────────────────────────────
   const [disenos, setDisenos] = useState<Diseno[]>(() => {
@@ -28,16 +29,39 @@ export default function App() {
     }
   }, [disenos])
 
-  function guardarDiseno(d: Omit<Diseno, 'id' | 'fechaCreacion'>) {
-    setDisenos(prev => [...prev, {
+  // Crea un diseño nuevo, o actualiza uno existente si se pasa un "id"
+  function guardarDiseno(d: Omit<Diseno, 'id' | 'fechaCreacion'> & { id?: string }) {
+    if (d.id) {
+      // Actualizar diseño existente
+      setDisenos(prev => prev.map(x => x.id === d.id ? { ...x, ...d, id: d.id as string } : x))
+      setDisenoAbierto(prev => prev ? { ...prev, ...d, id: d.id as string } : prev)
+      return d.id
+    }
+    const nuevoId = Date.now().toString()
+    const nuevo: Diseno = {
       ...d,
-      id:            Date.now().toString(),
+      id:            nuevoId,
       fechaCreacion: new Date().toLocaleDateString('es-CR')
-    }])
+    }
+    setDisenos(prev => [...prev, nuevo])
+    setDisenoAbierto(nuevo)
+    return nuevoId
   }
 
   function eliminarDiseno(id: string) {
     setDisenos(prev => prev.filter(d => d.id !== id))
+  }
+
+  // Abrir un diseño guardado para editarlo
+  function abrirDiseno(d: Diseno) {
+    setDisenoAbierto(d)
+    setVista(d.tipo)
+  }
+
+  // Crear un diseño nuevo desde cero (botones "Nuevo Calendario" etc.)
+  function crearNuevo(tipo: Vista) {
+    setDisenoAbierto(null)
+    setVista(tipo)
   }
 
   return (
@@ -51,10 +75,10 @@ export default function App() {
         ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px }
       `}</style>
 
-      {vista === 'home'         && <Home setVista={setVista} disenos={disenos} onEliminar={eliminarDiseno} />}
-      {vista === 'calendario'   && <EditorCalendario   setVista={setVista} guardarDiseno={guardarDiseno} />}
-      {vista === 'agenda'       && <WizardAgenda        setVista={setVista} guardarDiseno={guardarDiseno} />}
-      {vista === 'planificador' && <EditorPlanificador  setVista={setVista} guardarDiseno={guardarDiseno} />}
+      {vista === 'home'         && <Home setVista={crearNuevo} disenos={disenos} onEliminar={eliminarDiseno} onAbrir={abrirDiseno} />}
+      {vista === 'calendario'   && <EditorCalendario   setVista={setVista} guardarDiseno={guardarDiseno} disenoInicial={disenoAbierto?.tipo==='calendario' ? disenoAbierto : undefined} />}
+      {vista === 'agenda'       && <WizardAgenda        setVista={setVista} guardarDiseno={guardarDiseno} disenoInicial={disenoAbierto?.tipo==='agenda' ? disenoAbierto : undefined} />}
+      {vista === 'planificador' && <EditorPlanificador  setVista={setVista} guardarDiseno={guardarDiseno} disenoInicial={disenoAbierto?.tipo==='planificador' ? disenoAbierto : undefined} />}
     </div>
   )
 }

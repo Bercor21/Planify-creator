@@ -64,9 +64,11 @@ const PAPER_ASPECT: Record<string, number> = {
 }
 
 export default function WizardAgenda({ setVista, guardarDiseno }: {
-  setVista:      (v: any) => void
-  guardarDiseno: (d: any) => void
-}) {
+  setVista:       (v: any) => void
+  guardarDiseno:  (d: any) => void
+  disenoInicial?: any
+}) { 
+  
   const [paso,       setPaso]     = useState(1)
   const [config,     setConfig]   = useState<AgendaConfig>(CONFIG_DEFAULT)
   const [exportando, setExp]      = useState(false)

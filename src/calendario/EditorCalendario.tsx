@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { MESES, PALETAS, Paleta } from '../constants'
 import { showToast } from '../utils'
 import BtnVolver       from '../components/BtnVolver'
@@ -129,21 +129,21 @@ function getTam(id:string) {
 function MiniCal({ anio,mes,paleta,colorDom }:{ anio:number;mes:number;paleta:Paleta;colorDom:string }) {
   const dias = getDiasTrad(anio,mes)
   return (
-    <div style={{ width:'80px' }}>
-      <div style={{ fontSize:'7px',fontWeight:800,color:paleta.header,textAlign:'center',marginBottom:'2px' }}>
+    <div style={{ width:'245px' }}>
+      <div style={{ fontSize:'18px',fontWeight:900,color:paleta.header,textAlign:'center',marginBottom:'6px',letterSpacing:'-0.3px',whiteSpace:'nowrap' }}>
         {MESES[mes].toUpperCase()}
       </div>
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)' }}>
-        {DIAS_CORTOS.map((d,i)=><div key={i} style={{ textAlign:'center',fontSize:'5.5px',fontWeight:700,color:i===0?colorDom:paleta.acento }}>{d}</div>)}
-        {dias.map((d,i)=><div key={i} style={{ textAlign:'center',fontSize:'6px',color:!d?'transparent':i%7===0?colorDom:paleta.texto }}>{d||'·'}</div>)}
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'2px' }}>
+        {DIAS_CORTOS.map((d,i)=><div key={i} style={{ textAlign:'center',fontSize:'16px',fontWeight:800,color:i===0?colorDom:paleta.acento,padding:'2px 0' }}>{d}</div>)}
+        {dias.map((d,i)=><div key={i} style={{ textAlign:'center',fontSize:'17px',fontWeight:700,color:!d?'transparent':i%7===0?colorDom:paleta.texto,padding:'1px 0' }}>{d||'·'}</div>)}
       </div>
     </div>
   )
 }
 
 // ── Página de grilla del mes (sin foto, hoja completa) ────────────────────────
-function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,isPreview }:{
-  mesIdx:number;anio:number;paleta:Paleta;fuente:string;titulo:string;isPreview:boolean
+function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview,tamFuente,fondoMes,fondoGridOpacity }:{
+  mesIdx:number;anio:number;paleta:Paleta;fuente:string;titulo:string;subtitulo:string;isPreview:boolean;tamFuente:number;fondoMes?:string;fondoGridOpacity:number
 }) {
   const dias      = getDiasTrad(anio,mesIdx)
   const fases     = FASES[`${anio}-${mesIdx}`] ?? []
@@ -164,23 +164,27 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,isPreview }:{
       minHeight: isPreview ? undefined : '100vh',
       background:fondo, fontFamily:fuente,
       display:'flex', flexDirection:'column',
-      padding:'16px 20px 12px', boxSizing:'border-box',
+      padding:'16px 32px 12px', boxSizing:'border-box',
       pageBreakAfter:'always', pageBreakInside:'avoid',
       overflow:'hidden', position:'relative',
     }}>
+      {/* Fondo de página (opcional) */}
+      {fondoMes && (
+        <div style={{ position:'absolute', inset:0, backgroundImage:`url('${fondoMes}')`, backgroundSize:'cover', backgroundPosition:'center', opacity:fondoGridOpacity, zIndex:0 }}/>
+      )}
       {/* Header: mini prev | AÑO GRANDE + MES | mini next */}
-      <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px' }}>
+      <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px',position:'relative',zIndex:1 }}>
         <MiniCal anio={prevMes.a} mes={prevMes.m} paleta={paleta} colorDom={colorDom}/>
         <div style={{ textAlign:'center',flex:1 }}>
-          <div style={{ fontSize:'clamp(20px,4vw,42px)',fontWeight:900,color:colorDom,letterSpacing:'4px',lineHeight:1 }}>{anio}</div>
-          <div style={{ fontSize:'clamp(14px,3vw,30px)',fontWeight:900,color:colorHdr,letterSpacing:'5px',lineHeight:1.1 }}>{MESES[mesIdx].toUpperCase()}</div>
-          <div style={{ fontSize:'clamp(8px,1.2vw,11px)',color:`${colorHdr}66`,marginTop:'2px',letterSpacing:'1px' }}>{titulo.toUpperCase()}</div>
+          <div style={{ fontSize:'clamp(56px,10.5vw,100px)',fontWeight:900,color:colorDom,letterSpacing:'10px',lineHeight:1 }}>{anio}</div>
+          <div style={{ fontSize:'clamp(38px,7.5vw,72px)',fontWeight:900,color:colorHdr,letterSpacing:'12px',lineHeight:1.1 }}>{MESES[mesIdx].toUpperCase()}</div>
+          {subtitulo && <div style={{ fontSize:'clamp(11px,1.6vw,15px)',color:`${colorHdr}88`,marginTop:'6px',letterSpacing:'2px',fontWeight:600 }}>{subtitulo.toUpperCase()}</div>}
         </div>
         <MiniCal anio={nextMes.a} mes={nextMes.m} paleta={paleta} colorDom={colorDom}/>
       </div>
 
       {/* Header días */}
-      <div style={{ display:'grid',gridTemplateColumns:'34px repeat(7,1fr)',background:`${colorHdr}10`,borderRadius:'6px',padding:'4px 0',marginBottom:'4px' }}>
+      <div style={{ display:'grid',gridTemplateColumns:'34px repeat(7,1fr)',background:`${colorHdr}10`,borderRadius:'6px',padding:'4px 0',marginBottom:'4px',position:'relative',zIndex:1 }}>
         <div style={{ textAlign:'center',fontSize:'8px',fontWeight:700,color:`${colorHdr}88` }}>SEM</div>
         {DIAS_NOMBRES.map((d,i)=>(
           <div key={i} style={{ textAlign:'center',fontSize:'clamp(7px,1.2vw,11px)',fontWeight:800,color:i===0?colorDom:colorHdr,letterSpacing:'0.5px' }}>
@@ -190,13 +194,13 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,isPreview }:{
       </div>
 
       {/* Filas del calendario */}
-      <div style={{ flex:1,display:'flex',flexDirection:'column',gap:'2px' }}>
+      <div style={{ flex:1,display:'flex',flexDirection:'column',gap:'2px',position:'relative',zIndex:1 }}>
         {rows.map((row,ri)=>{
           const primer = row.find(d=>d!==null)
           const nSem   = primer ? getNumSemana(anio,mesIdx,primer) : ''
           return (
             <div key={ri} style={{ display:'grid',gridTemplateColumns:'34px repeat(7,1fr)',flex:1 }}>
-              <div style={{ textAlign:'center',fontSize:'8px',color:`${colorHdr}66`,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',borderRight:`1px solid ${colorHdr}15` }}>
+              <div style={{ textAlign:'center',fontSize:'8px',color:`${colorHdr}aa`,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',border:`2.5px solid ${colorHdr}77` }}>
                 {nSem}
               </div>
               {row.map((dia,ci)=>{
@@ -206,14 +210,17 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,isPreview }:{
                 const isHoy   = dia===new Date().getDate()&&mesIdx===new Date().getMonth()&&anio===new Date().getFullYear()
                 return (
                   <div key={ci} style={{
-                    borderLeft:`1px solid ${colorHdr}12`,borderBottom:`1px solid ${colorHdr}12`,
-                    padding:'3px 4px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',
+                    border:`2.5px solid ${colorHdr}77`,
+                    padding:'4px 6px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'space-between',
                     background:isHoy?`${colorDom}20`:feriado?`${colorDom}08`:'transparent',
+                    position:'relative', overflow:'hidden',
                   }}>
                     {dia && <>
-                      <div style={{ fontSize:'clamp(11px,1.8vw,18px)',fontWeight:esDom||feriado?800:600,color:isHoy?colorDom:esDom||feriado?colorDom:colorTxt,lineHeight:1.1 }}>{dia}</div>
-                      {fase && <div style={{ fontSize:'clamp(8px,1.2vw,12px)',lineHeight:1 }}>{ICONO_FASE[fase.tipo]}</div>}
-                      {feriado&&!fase && <div style={{ fontSize:'clamp(5px,0.8vw,7px)',color:colorDom,lineHeight:1.2,textAlign:'center',overflow:'hidden',maxWidth:'100%' }}>{feriado.split(' ').slice(0,2).join(' ')}</div>}
+                      <div style={{ width:'100%',display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'2px' }}>
+                        {fase && <div style={{ fontSize:`${Math.round(tamFuente*0.8)}px`,lineHeight:1 }}>{ICONO_FASE[fase.tipo]}</div>}
+                        {feriado&&!fase && <div style={{ fontSize:`${Math.round(tamFuente*0.4)}px`,color:colorDom,lineHeight:1.05,maxWidth:'100%',fontWeight:700 }}>{feriado}</div>}
+                      </div>
+                      <div style={{ fontSize:`${tamFuente}px`,fontWeight:900,color:isHoy?colorDom:esDom||feriado?colorDom:colorTxt,lineHeight:1.1,alignSelf:'flex-end',WebkitTextStroke:'0.4px currentColor' as any }}>{dia}</div>
                     </>}
                   </div>
                 )
@@ -225,10 +232,11 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,isPreview }:{
 
       {/* Footer fases */}
       {fases.length>0 && (
-        <div style={{ display:'flex',gap:'12px',justifyContent:'center',marginTop:'6px',flexWrap:'wrap' }}>
+        <div style={{ display:'flex',gap:'18px',justifyContent:'center',marginTop:'8px',flexWrap:'wrap',borderTop:`1.5px solid ${colorHdr}33`,paddingTop:'8px',position:'relative',zIndex:1 }}>
           {fases.map((f,i)=>(
-            <span key={i} style={{ fontSize:'clamp(7px,1vw,9px)',color:`${colorHdr}88`,display:'flex',alignItems:'center',gap:'3px' }}>
-              {ICONO_FASE[f.tipo]} {f.dia} {LABEL_FASE[f.tipo]}
+            <span key={i} style={{ fontSize:'clamp(11px,1.6vw,15px)',color:colorHdr,fontWeight:700,display:'flex',alignItems:'center',gap:'5px' }}>
+              <span style={{ fontSize:'clamp(14px,2.2vw,20px)' }}>{ICONO_FASE[f.tipo]}</span>
+              <span>{f.dia} {LABEL_FASE[f.tipo]}</span>
             </span>
           ))}
         </div>
@@ -238,31 +246,46 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,isPreview }:{
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function EditorCalendario({ setVista,guardarDiseno }:{
-  setVista:(v:any)=>void; guardarDiseno:(d:any)=>void
+export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial }:{
+  setVista:(v:any)=>void; guardarDiseno:(d:any)=>string|undefined; disenoInicial?:any
 }) {
-  const [anio,       setAnio]      = useState(new Date().getFullYear())
-  const [fuente,     setFuente]    = useState('Arial')
-  const [paleta,     setPaleta]    = useState<Paleta>(PALETAS[0])
-  const [titulo,     setTitulo]    = useState('Mi Calendario')
-  const [tamano,     setTamano]    = useState('pared-a4')
+  const d0 = disenoInicial?.data
+  const [anio,       setAnio]      = useState(disenoInicial?.anio ?? new Date().getFullYear())
+  const [fuente,     setFuente]    = useState(disenoInicial?.fuente ?? 'Arial')
+  const [paleta,     setPaleta]    = useState<Paleta>(disenoInicial?.paleta ?? PALETAS[0])
+  const [titulo,     setTitulo]    = useState(disenoInicial?.titulo ?? 'Mi Calendario')
+  const [tamano,     setTamano]    = useState(disenoInicial?.tamano ?? 'pared-a4')
   const [showTamPanel,setShowTamPanel] = useState(false)
-  const [foto,       setFoto]      = useState<string|undefined>()
+  const [foto,       setFoto]      = useState<string|undefined>(d0?.foto)
   const [exportando, setExp]       = useState(false)
   const [toast,      setToast]     = useState<string|null>(null)
-  const [guardado,   setGuardado]  = useState(false)
+  const [guardado,   setGuardado]  = useState(!!disenoInicial) // si ya existe, ya está "guardado"
   const [mesActivo,  setMesActivo] = useState(0)
   const [vistaPreview, setVistaPreview] = useState<'foto'|'calendario'>('foto')
+  const [tamFuente, setTamFuente] = useState(d0?.tamFuente ?? 18) // tamaño base del número del día en px (a escala A4)
+  const [subtitulo, setSubtitulo] = useState(d0?.subtitulo ?? 'Mi Calendario')
+  const [fondosMes, setFondosMes] = useState<(string|undefined)[]>(d0?.fondosMes ?? Array(12).fill(undefined))
+  const [fondoGridOpacity, setFondoGridOpacity] = useState(d0?.fondoGridOpacity ?? 0.15)
+  const [showFondoPanel, setShowFondoPanel] = useState(false)
+  const [mesFondoActivo, setMesFondoActivo] = useState(0) // mes que se está editando en el panel de fondo
   // Logo
-  const [logo,        setLogo]        = useState<string|undefined>()
-  const [logoX,       setLogoX]       = useState(85)
-  const [logoY,       setLogoY]       = useState(10)
-  const [logoSize,    setLogoSize]    = useState(8)
-  const [logoOpacity, setLogoOpacity] = useState(1)
+  const [logo,        setLogo]        = useState<string|undefined>(d0?.logo)
+  const [logoX,       setLogoX]       = useState(d0?.logoX ?? 85)
+  const [logoY,       setLogoY]       = useState(d0?.logoY ?? 10)
+  const [logoSize,    setLogoSize]    = useState(d0?.logoSize ?? 8)
+  const [logoOpacity, setLogoOpacity] = useState(d0?.logoOpacity ?? 1)
   const [showLogo,    setShowLogo]    = useState(false)
+  const [idDiseno,    setIdDiseno]    = useState<string|undefined>(disenoInicial?.id)
   const previewRef = useRef<HTMLDivElement>(null)
   const logoData = logo ? { src:logo,x:logoX,y:logoY,size:logoSize,opacity:logoOpacity } : undefined
   const tam = getTam(tamano)
+
+  // Si el usuario hace cambios después de guardar, vuelve a mostrar "Guardar"
+  const yaMontado = useRef(false)
+  useEffect(() => {
+    if (!yaMontado.current) { yaMontado.current = true; return }
+    setGuardado(false)
+  }, [titulo, paleta, fuente, tamano, anio, foto, subtitulo, tamFuente, fondosMes, fondoGridOpacity, logo, logoX, logoY, logoSize, logoOpacity])
 
   function subirFoto() {
     const i=document.createElement('input'); i.type='file'; i.accept='image/*'
@@ -273,6 +296,21 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
     const i=document.createElement('input'); i.type='file'; i.accept='image/*'
     i.onchange=(e:any)=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=(ev:any)=>{ setLogo(ev.target.result); setShowLogo(true) }; r.readAsDataURL(f) }
     i.click()
+  }
+  function subirFondoGrid(mes:number) {
+    const i=document.createElement('input'); i.type='file'; i.accept='image/*'
+    i.onchange=(e:any)=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=(ev:any)=>{
+      setFondosMes(prev=>{ const copia=[...prev]; copia[mes]=ev.target.result; return copia })
+    }; r.readAsDataURL(f) }
+    i.click()
+  }
+  function quitarFondoMes(mes:number) {
+    setFondosMes(prev=>{ const copia=[...prev]; copia[mes]=undefined; return copia })
+  }
+  function aplicarFondoATodos(mes:number) {
+    const img = fondosMes[mes]
+    if (!img) return
+    setFondosMes(Array(12).fill(img))
   }
   function handleLogoDrag(e:React.MouseEvent) {
     if(!previewRef.current) return; e.preventDefault()
@@ -286,7 +324,7 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
   }
 
   // ── Generar HTML de una grilla de mes para PDF/print ─────────────────────
-  function generarGrillaHTML(idx:number, pxW:number, pxH:number): string {
+  function generarGrillaHTML(idx:number, pxW:number, pxH:number, tamFuente:number): string {
     const dias=getDiasTrad(anio,idx)
     const fases=FASES[`${anio}-${idx}`]??[]
     const faseMap:Record<number,FaseLunar>={}
@@ -300,11 +338,11 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
 
     function miniStr(a:number,m:number) {
       const d=getDiasTrad(a,m)
-      return `<div style="width:75px;font-family:${fuente}">
-        <div style="font-size:7px;font-weight:800;color:${ch};text-align:center;margin-bottom:2px">${MESES[m].toUpperCase()}</div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr)">
-          ${DIAS_CORTOS.map((dc,i)=>`<div style="text-align:center;font-size:5.5px;color:${i===0?cd:ch}">${dc}</div>`).join('')}
-          ${d.map((dia,i)=>`<div style="text-align:center;font-size:6px;color:${!dia?'transparent':i%7===0?cd:ct}">${dia||'·'}</div>`).join('')}
+      return `<div style="width:245px;font-family:${fuente}">
+        <div style="font-size:18px;font-weight:900;color:${ch};text-align:center;margin-bottom:6px;letter-spacing:-0.3px;white-space:nowrap">${MESES[m].toUpperCase()}</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
+          ${DIAS_CORTOS.map((dc,i)=>`<div style="text-align:center;font-size:16px;font-weight:800;color:${i===0?cd:ch};padding:2px 0">${dc}</div>`).join('')}
+          ${d.map((dia,i)=>`<div style="text-align:center;font-size:17px;font-weight:700;color:${!dia?'transparent':i%7===0?cd:ct};padding:1px 0">${dia||'·'}</div>`).join('')}
         </div>
       </div>`
     }
@@ -313,35 +351,39 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
       const primer=row.find(d=>d!==null)
       const nSem=primer?getNumSemana(anio,idx,primer):''
       return `<div style="display:grid;grid-template-columns:34px repeat(7,1fr);flex:1;min-height:0">
-        <div style="text-align:center;font-size:8px;color:${ch}66;display:flex;align-items:center;justify-content:center;border-right:1px solid ${ch}15">${nSem}</div>
+        <div style="text-align:center;font-size:10px;color:${ch};font-weight:900;display:flex;align-items:center;justify-content:center;border:3px solid ${ch}99">${nSem}</div>
         ${row.map((dia,ci)=>{
           const esDom=ci===0, feriado=dia?getFeriado(anio,idx,dia):null, fase=dia?faseMap[dia]:null
           const isHoy=dia===new Date().getDate()&&idx===new Date().getMonth()&&anio===new Date().getFullYear()
-          return `<div style="border-left:1px solid ${ch}12;border-bottom:1px solid ${ch}12;padding:3px 4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;${feriado?`background:${cd}08;`:''}${isHoy?`background:${cd}20;`:''}">
-            ${dia?`<div style="font-size:18px;font-weight:${esDom||feriado?800:600};color:${isHoy?cd:esDom||feriado?cd:ct};line-height:1.1">${dia}</div>
-            ${fase?`<div style="font-size:12px">${ICONO_FASE[fase.tipo]}</div>`:''}
-            ${feriado&&!fase?`<div style="font-size:7px;color:${cd};line-height:1.2;text-align:center;overflow:hidden;max-width:100%">${feriado.split(' ').slice(0,2).join(' ')}</div>`:''}`:''}
+          const fsPx = Math.round(tamFuente * 1.6) // escala para resolución de exportación
+          return `<div style="border:3px solid ${ch}99;padding:6px 8px;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;overflow:hidden;${feriado?`background:${cd}08;`:''}${isHoy?`background:${cd}20;`:''}">
+            ${dia?`<div style="width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px">
+              ${fase?`<div style="font-size:${Math.round(fsPx*0.8)}px">${ICONO_FASE[fase.tipo]}</div>`:''}
+              ${feriado&&!fase?`<div style="font-size:${Math.round(fsPx*0.4)}px;color:${cd};line-height:1.05;max-width:100%;font-weight:700">${feriado}</div>`:''}
+            </div>
+            <div style="font-size:${fsPx}px;font-weight:900;color:${isHoy?cd:esDom||feriado?cd:ct};line-height:1.1;align-self:flex-end;-webkit-text-stroke:0.4px currentColor;text-stroke:0.4px currentColor">${dia}</div>`:''}
           </div>`
         }).join('')}
       </div>`
     }).join('')
 
-    return `<div style="width:${pxW}px;height:${pxH}px;background:${fondo};font-family:${fuente};display:flex;flex-direction:column;padding:16px 20px 12px;box-sizing:border-box;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    return `<div style="width:${pxW}px;height:${pxH}px;background:${fondo};font-family:${fuente};display:flex;flex-direction:column;padding:16px 32px 12px;box-sizing:border-box;overflow:hidden;position:relative">
+      ${fondosMes[idx]?`<div style="position:absolute;inset:0;background-image:url('${fondosMes[idx]}');background-size:cover;background-position:center;opacity:${fondoGridOpacity};z-index:0"></div>`:''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:1">
         ${miniStr(prevMes.a,prevMes.m)}
         <div style="text-align:center;flex:1">
-          <div style="font-size:40px;font-weight:900;color:${cd};letter-spacing:4px;line-height:1">${anio}</div>
-          <div style="font-size:28px;font-weight:900;color:${ch};letter-spacing:5px;line-height:1.1">${MESES[idx].toUpperCase()}</div>
-          <div style="font-size:10px;color:${ch}66;margin-top:2px">${titulo.toUpperCase()}</div>
+          <div style="font-size:100px;font-weight:900;color:${cd};letter-spacing:10px;line-height:1">${anio}</div>
+          <div style="font-size:72px;font-weight:900;color:${ch};letter-spacing:12px;line-height:1.1">${MESES[idx].toUpperCase()}</div>
+          ${subtitulo?`<div style="font-size:15px;color:${ch}88;margin-top:6px;letter-spacing:2px;font-weight:600">${subtitulo.toUpperCase()}</div>`:''}
         </div>
         ${miniStr(nextMes.a,nextMes.m)}
       </div>
-      <div style="display:grid;grid-template-columns:34px repeat(7,1fr);background:${ch}10;border-radius:6px;padding:4px 0;margin-bottom:4px">
-        <div style="text-align:center;font-size:8px;color:${ch}88">SEM</div>
-        ${DIAS_NOMBRES.map((d,i)=>`<div style="text-align:center;font-size:11px;font-weight:800;color:${i===0?cd:ch}">${d}</div>`).join('')}
+      <div style="display:grid;grid-template-columns:34px repeat(7,1fr);background:${ch}10;border-radius:6px;padding:4px 0;margin-bottom:4px;position:relative;z-index:1">
+        <div style="text-align:center;font-size:9px;font-weight:900;color:${ch}">SEM</div>
+        ${DIAS_NOMBRES.map((d,i)=>`<div style="text-align:center;font-size:12px;font-weight:900;color:${i===0?cd:ch};-webkit-text-stroke:0.3px currentColor">${d}</div>`).join('')}
       </div>
-      <div style="display:flex;flex-direction:column;flex:1;gap:2px">${rowsStr}</div>
-      ${fases.length>0?`<div style="display:flex;gap:12px;justify-content:center;margin-top:6px;flex-wrap:wrap">${fases.map(f=>`<span style="font-size:9px;color:${ch}88">${ICONO_FASE[f.tipo]} ${f.dia} ${LABEL_FASE[f.tipo]}</span>`).join('')}</div>`:''}
+      <div style="display:flex;flex-direction:column;flex:1;gap:2px;position:relative;z-index:1">${rowsStr}</div>
+      ${fases.length>0?`<div style="display:flex;gap:18px;justify-content:center;margin-top:8px;flex-wrap:wrap;border-top:1.5px solid ${ch}33;padding-top:8px;position:relative;z-index:1">${fases.map(f=>`<span style="font-size:15px;color:${ch};font-weight:700;display:flex;align-items:center;gap:5px"><span style="font-size:20px">${ICONO_FASE[f.tipo]}</span><span>${f.dia} ${LABEL_FASE[f.tipo]}</span></span>`).join('')}</div>`:''}
     </div>`
   }
 
@@ -367,7 +409,7 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
 
       // ── Páginas 2-13: GRILLAS ──
       for(let idx=0;idx<12;idx++) {
-        wrap.innerHTML=generarGrillaHTML(idx,pxW,pxH)
+        wrap.innerHTML=generarGrillaHTML(idx,pxW,pxH,tamFuente)
         await new Promise(r=>setTimeout(r,150))
         canvas=await html2canvas(wrap,{scale:3,useCORS:true,allowTaint:true,backgroundColor:paleta.fondo==='#0f172a'?'#1e293b':'#ffffff',logging:false,width:pxW,height:pxH})
         pdf.addPage([tam.w,tam.h])
@@ -409,18 +451,20 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
 
       function miniStr(a:number,m:number) {
         const d=getDiasTrad(a,m)
-        return `<div style="width:75px"><div style="font-size:7px;font-weight:800;color:${ch};text-align:center">${MESES[m].toUpperCase()}</div><div style="display:grid;grid-template-columns:repeat(7,1fr)">${DIAS_CORTOS.map((dc,i)=>`<div style="text-align:center;font-size:5px;color:${i===0?cd:ch}">${dc}</div>`).join('')}${d.map((dia,i)=>`<div style="text-align:center;font-size:6px;color:${!dia?'transparent':i%7===0?cd:ct}">${dia||'·'}</div>`).join('')}</div></div>`
+        return `<div style="width:245px"><div style="font-size:18px;font-weight:900;color:${ch};text-align:center;margin-bottom:6px;letter-spacing:-0.3px;white-space:nowrap">${MESES[m].toUpperCase()}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${DIAS_CORTOS.map((dc,i)=>`<div style="text-align:center;font-size:16px;font-weight:800;color:${i===0?cd:ch};padding:2px 0">${dc}</div>`).join('')}${d.map((dia,i)=>`<div style="text-align:center;font-size:17px;font-weight:700;color:${!dia?'transparent':i%7===0?cd:ct};padding:1px 0">${dia||'·'}</div>`).join('')}</div></div>`
       }
+      const fsPx = Math.round(tamFuente * 1.6)
       const rowsStr=rows.map(row=>{
         const primer=row.find(d=>d!==null), nSem=primer?getNumSemana(anio,idx,primer):''
-        return `<div style="display:grid;grid-template-columns:34px repeat(7,1fr);flex:1;min-height:0"><div style="text-align:center;font-size:8px;color:${ch}66;display:flex;align-items:center;justify-content:center;border-right:1px solid ${ch}15">${nSem}</div>${row.map((dia,ci)=>{const esDom=ci===0,feriado=dia?getFeriado(anio,idx,dia):null,fase=dia?faseMap[dia]:null;return `<div style="border-left:1px solid ${ch}12;border-bottom:1px solid ${ch}12;padding:3px 4px;display:flex;flex-direction:column;align-items:center;${feriado?`background:${cd}08`:''}">${dia?`<div style="font-size:18px;font-weight:${esDom||feriado?800:600};color:${esDom||feriado?cd:ct}">${dia}</div>${fase?`<div style="font-size:12px">${ICONO_FASE[fase.tipo]}</div>`:''}${feriado&&!fase?`<div style="font-size:7px;color:${cd};text-align:center">${feriado.split(' ').slice(0,2).join(' ')}</div>`:''}`:''}
+        return `<div style="display:grid;grid-template-columns:34px repeat(7,1fr);flex:1;min-height:0"><div style="text-align:center;font-size:10px;color:${ch};font-weight:900;display:flex;align-items:center;justify-content:center;border:3px solid ${ch}99">${nSem}</div>${row.map((dia,ci)=>{const esDom=ci===0,feriado=dia?getFeriado(anio,idx,dia):null,fase=dia?faseMap[dia]:null,isHoy=dia===new Date().getDate()&&idx===new Date().getMonth()&&anio===new Date().getFullYear();return `<div style="border:3px solid ${ch}99;padding:6px 8px;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;overflow:hidden;${feriado?`background:${cd}08;`:''}${isHoy?`background:${cd}20;`:''}">${dia?`<div style="width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px">${fase?`<div style="font-size:${Math.round(fsPx*0.8)}px">${ICONO_FASE[fase.tipo]}</div>`:''}${feriado&&!fase?`<div style="font-size:${Math.round(fsPx*0.4)}px;color:${cd};line-height:1.05;max-width:100%;font-weight:700">${feriado}</div>`:''}</div><div style="font-size:${fsPx}px;font-weight:900;color:${isHoy?cd:esDom||feriado?cd:ct};line-height:1.1;align-self:flex-end;-webkit-text-stroke:0.4px currentColor">${dia}</div>`:''}
         </div>`}).join('')}</div>`
       }).join('')
-      return `<div style="width:100vw;height:100vh;background:${fondo};font-family:${fuente};display:flex;flex-direction:column;padding:16px 20px 12px;box-sizing:border-box;overflow:hidden;page-break-after:${isLast?'auto':'always'};page-break-inside:avoid">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">${miniStr(prevMes.a,prevMes.m)}<div style="text-align:center;flex:1"><div style="font-size:40px;font-weight:900;color:${cd};letter-spacing:4px;line-height:1">${anio}</div><div style="font-size:28px;font-weight:900;color:${ch};letter-spacing:5px">${MESES[idx].toUpperCase()}</div></div>${miniStr(nextMes.a,nextMes.m)}</div>
-        <div style="display:grid;grid-template-columns:34px repeat(7,1fr);background:${ch}10;border-radius:6px;padding:4px 0;margin-bottom:4px"><div style="text-align:center;font-size:8px;color:${ch}88">SEM</div>${DIAS_NOMBRES.map((d,i)=>`<div style="text-align:center;font-size:11px;font-weight:800;color:${i===0?cd:ch}">${d}</div>`).join('')}</div>
-        <div style="display:flex;flex-direction:column;flex:1;gap:2px">${rowsStr}</div>
-        ${fases.length>0?`<div style="display:flex;gap:12px;justify-content:center;margin-top:6px;flex-wrap:wrap">${fases.map(f=>`<span style="font-size:9px;color:${ch}88">${ICONO_FASE[f.tipo]} ${f.dia} ${LABEL_FASE[f.tipo]}</span>`).join('')}</div>`:''}
+      return `<div style="width:100vw;height:100vh;background:${fondo};font-family:${fuente};display:flex;flex-direction:column;padding:16px 32px 12px;box-sizing:border-box;overflow:hidden;page-break-after:${isLast?'auto':'always'};page-break-inside:avoid;position:relative">
+        ${fondosMes[idx]?`<div style="position:absolute;inset:0;background-image:url('${fondosMes[idx]}');background-size:cover;background-position:center;opacity:${fondoGridOpacity};z-index:0"></div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:1">${miniStr(prevMes.a,prevMes.m)}<div style="text-align:center;flex:1"><div style="font-size:100px;font-weight:900;color:${cd};letter-spacing:10px;line-height:1">${anio}</div><div style="font-size:72px;font-weight:900;color:${ch};letter-spacing:12px;line-height:1.1">${MESES[idx].toUpperCase()}</div>${subtitulo?`<div style="font-size:15px;color:${ch}88;margin-top:6px;letter-spacing:2px;font-weight:600">${subtitulo.toUpperCase()}</div>`:''}</div>${miniStr(nextMes.a,nextMes.m)}</div>
+        <div style="position:relative;z-index:1;display:grid;grid-template-columns:34px repeat(7,1fr);background:${ch}10;border-radius:6px;padding:4px 0;margin-bottom:4px"><div style="text-align:center;font-size:9px;font-weight:900;color:${ch}">SEM</div>${DIAS_NOMBRES.map((d,i)=>`<div style="text-align:center;font-size:12px;font-weight:900;color:${i===0?cd:ch};-webkit-text-stroke:0.3px currentColor">${d}</div>`).join('')}</div>
+        <div style="display:flex;flex-direction:column;flex:1;gap:2px;position:relative;z-index:1">${rowsStr}</div>
+        ${fases.length>0?`<div style="display:flex;gap:18px;justify-content:center;margin-top:8px;flex-wrap:wrap;border-top:1.5px solid ${ch}33;padding-top:8px;position:relative;z-index:1">${fases.map(f=>`<span style="font-size:15px;color:${ch};font-weight:700;display:flex;align-items:center;gap:5px"><span style="font-size:20px">${ICONO_FASE[f.tipo]}</span><span>${f.dia} ${LABEL_FASE[f.tipo]}</span></span>`).join('')}</div>`:''}
       </div>`
     }).join('')
 
@@ -487,6 +531,73 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
           <button onClick={()=>setAnio(anio+1)} style={{ width:'28px',height:'28px',borderRadius:'6px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer' }}>›</button>
         </div>
 
+        {/* Tamaño de letra de los números */}
+        <div style={{ display:'flex',alignItems:'center',gap:'6px',padding:'4px 10px',borderRadius:'8px',border:'1px solid #e2e8f0',background:'white' }}>
+          <span style={{ fontSize:'12px',color:'#64748b' }}>🔤</span>
+          <input type="range" min={8} max={50} value={tamFuente}
+            onChange={(e:any)=>setTamFuente(parseInt(e.target.value))}
+            style={{ width:'70px',accentColor:paleta.acento }}/>
+          <span style={{ fontSize:'11px',fontWeight:700,color:'#64748b',minWidth:'24px' }}>{tamFuente}px</span>
+        </div>
+
+        {/* Subtítulo editable */}
+        <input value={subtitulo} onChange={(e:any)=>setSubtitulo(e.target.value)}
+          placeholder="Subtítulo (opcional)"
+          style={{ padding:'6px 12px',borderRadius:'8px',border:'1px solid #e2e8f0',fontSize:'12px',width:'140px',outline:'none' }}/>
+
+        {/* Fondo de página del calendario (por mes) */}
+        <div style={{ position:'relative' }}>
+          <button onClick={()=>setShowFondoPanel(v=>!v)} style={{ padding:'6px 10px',borderRadius:'8px',border:'1px solid #e2e8f0',background:fondosMes.some(Boolean)?'#eff6ff':'white',cursor:'pointer',fontSize:'12px',fontWeight:600,color:fondosMes.some(Boolean)?'#3b82f6':'#64748b' }}>
+            🎨 Fondo{fondosMes.some(Boolean)?` (${fondosMes.filter(Boolean).length}/12)`:''}
+          </button>
+          {showFondoPanel && (
+            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',left:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'14px',zIndex:300,width:'280px' }}>
+              <div style={{ fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'10px' }}>FONDO POR MES</div>
+
+              {/* Selector de mes */}
+              <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'4px',marginBottom:'10px' }}>
+                {MESES.map((m,i)=>(
+                  <button key={i} onClick={()=>setMesFondoActivo(i)} style={{
+                    padding:'5px 2px',borderRadius:'6px',border:'none',cursor:'pointer',fontSize:'10px',fontWeight:700,position:'relative',
+                    background:mesFondoActivo===i?paleta.header:'#f1f5f9',
+                    color:mesFondoActivo===i?'white':'#64748b',
+                  }}>
+                    {m.slice(0,3)}
+                    {fondosMes[i] && <span style={{ position:'absolute',top:'-3px',right:'-3px',width:'8px',height:'8px',borderRadius:'50%',background:'#22c55e',border:'1.5px solid white' }}/>}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ fontSize:'11px',fontWeight:700,color:paleta.header,marginBottom:'8px' }}>{MESES[mesFondoActivo]}</div>
+
+              <div style={{ display:'flex',gap:'8px',marginBottom:'10px' }}>
+                <button onClick={()=>subirFondoGrid(mesFondoActivo)} style={{ flex:1,padding:'7px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer',fontSize:'11px',fontWeight:600,color:'#64748b' }}>📷 Subir</button>
+                {fondosMes[mesFondoActivo] && <button onClick={()=>quitarFondoMes(mesFondoActivo)} style={{ padding:'7px 10px',borderRadius:'7px',border:'1px solid #fecaca',background:'#fef2f2',cursor:'pointer',fontSize:'11px',color:'#dc2626' }}>✕</button>}
+              </div>
+
+              {fondosMes[mesFondoActivo] && (
+                <>
+                  <div style={{ width:'100%',height:'60px',borderRadius:'8px',backgroundImage:`url('${fondosMes[mesFondoActivo]}')`,backgroundSize:'cover',backgroundPosition:'center',marginBottom:'8px',border:'1px solid #e2e8f0' }}/>
+                  <button onClick={()=>aplicarFondoATodos(mesFondoActivo)} style={{ width:'100%',padding:'6px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',fontSize:'10px',fontWeight:600,color:paleta.acento,marginBottom:'10px' }}>
+                    📋 Usar esta imagen en los 12 meses
+                  </button>
+                </>
+              )}
+
+              <div style={{ marginBottom:'4px' }}>
+                <div style={{ display:'flex',justifyContent:'space-between',fontSize:'10px',fontWeight:700,color:'#64748b',marginBottom:'3px' }}>
+                  <span>Opacidad (todos los meses)</span><span>{Math.round(fondoGridOpacity*100)}%</span>
+                </div>
+                <input type="range" min={5} max={100} value={Math.round(fondoGridOpacity*100)}
+                  onChange={(e:any)=>setFondoGridOpacity(parseInt(e.target.value)/100)}
+                  style={{ width:'100%',accentColor:paleta.acento }}/>
+              </div>
+
+              <div style={{ fontSize:'10px',color:'#94a3b8',marginTop:'6px' }}>💡 Cada mes puede tener su propia imagen de fondo, o usar el botón para aplicar una a los 12</div>
+            </div>
+          )}
+        </div>
+
         {/* Foto */}
         <div style={{ display:'flex',gap:'6px',alignItems:'center' }}>
           <button onClick={subirFoto} style={{ padding:'6px 12px',borderRadius:'8px',border:'1px solid #e2e8f0',background:foto?'#eff6ff':'white',cursor:'pointer',fontSize:'12px',fontWeight:600,color:foto?'#3b82f6':'#64748b' }}>
@@ -532,7 +643,19 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
         </div>
 
         <div style={{ marginLeft:'auto',display:'flex',gap:'8px',alignItems:'center' }}>
-          <button onClick={()=>{ guardarDiseno({tipo:'calendario',titulo,paleta,fuente,tamano,anio}); setGuardado(true); showToast(setToast,'💾 Guardado') }}
+          <button onClick={()=>{
+            const nuevoId = guardarDiseno({
+              id: idDiseno,
+              tipo:'calendario', titulo, paleta, fuente, tamano, anio,
+              data: {
+                foto, subtitulo, tamFuente, fondosMes, fondoGridOpacity,
+                logo, logoX, logoY, logoSize, logoOpacity,
+              }
+            })
+            if (nuevoId) setIdDiseno(nuevoId)
+            setGuardado(true)
+            showToast(setToast,'💾 Guardado — podés volver a abrirlo desde Inicio')
+          }}
             style={{ padding:'6px 14px',borderRadius:'8px',border:'none',background:guardado?'#f0fdf4':'#f1f5f9',color:guardado?'#16a34a':'#64748b',cursor:'pointer',fontSize:'12px',fontWeight:600 }}>
             {guardado?'✅ Guardado':'💾 Guardar'}
           </button>
@@ -543,7 +666,7 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
       <BarraPaletas paleta={paleta} setPaleta={setPaleta}/>
 
       {/* PREVIEW */}
-      <div style={{ flex:1,overflow:'auto',padding:'20px',background:paleta.fondo }} onClick={()=>{ setShowTamPanel(false); setShowLogo(false) }}>
+      <div style={{ flex:1,overflow:'auto',padding:'20px',background:paleta.fondo }} onClick={()=>{ setShowTamPanel(false); setShowLogo(false); setShowFondoPanel(false) }}>
 
         {/* Indicador de páginas */}
         <div style={{ textAlign:'center',marginBottom:'12px' }}>
@@ -567,11 +690,13 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
         {vistaPreview==='foto' && (
           <div style={{ maxWidth:'700px',margin:'0 auto' }}>
             <div style={{ position:'relative',width:'100%',paddingBottom:`${(tam.h/tam.w)*100}%`,borderRadius:'12px',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.12)' }}>
-              <div onClick={subirFoto} ref={previewRef} style={{ position:'absolute',inset:0,cursor:'pointer',background:foto?`url('${foto}') center/cover no-repeat`:`linear-gradient(135deg,${paleta.header}cc,${paleta.acento}99)` }}>
+              <div onClick={subirFoto} style={{ position:'absolute',inset:0,cursor:'pointer',background:foto?`url('${foto}') center/cover no-repeat`:`linear-gradient(135deg,${paleta.header}cc,${paleta.acento}99)` }}>
                 {logo && (
                   <div
-                    onMouseDown={(e)=>{ e.stopPropagation(); handleLogoDrag(e) }}
-                    onClick={e => e.stopPropagation()}
+                    ref={previewRef}
+                    onMouseDown={(e:any)=>{ e.stopPropagation(); handleLogoDrag(e) }}
+                    onClick={(e:any)=>e.stopPropagation()}
+                    onMouseUp={(e:any)=>e.stopPropagation()}
                     style={{ position:'absolute',left:`${logoX}%`,top:`${logoY}%`,width:`${logoSize}%`,aspectRatio:'1 / 1',borderRadius:'50%',backgroundImage:`url('${logo}')`,backgroundSize:'cover',backgroundPosition:'center',opacity:logoOpacity,transform:'translate(-50%,-50%)',zIndex:8,cursor:'grab',boxShadow:'0 4px 16px rgba(0,0,0,0.3)',border:'3px solid rgba(255,255,255,0.8)' }}
                   />
                 )}
@@ -603,7 +728,7 @@ export default function EditorCalendario({ setVista,guardarDiseno }:{
             {/* Preview del mes */}
             <div style={{ position:'relative',width:'100%',paddingBottom:`${(tam.h/tam.w)*100}%`,borderRadius:'12px',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.12)' }}>
               <div style={{ position:'absolute',inset:0 }}>
-                <PaginaCalendario mesIdx={mesActivo} anio={anio} paleta={paleta} fuente={fuente} titulo={titulo} isPreview={true}/>
+                <PaginaCalendario mesIdx={mesActivo} anio={anio} paleta={paleta} fuente={fuente} titulo={titulo} subtitulo={subtitulo} isPreview={true} tamFuente={tamFuente} fondoMes={fondosMes[mesActivo]} fondoGridOpacity={fondoGridOpacity}/>
               </div>
             </div>
 

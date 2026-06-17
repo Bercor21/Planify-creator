@@ -9,8 +9,9 @@ import BotonesExportar from '../components/BotonesExportar'
 import Toast           from '../components/Toast'
 
 export default function EditorPlanificador({ setVista, guardarDiseno }: {
-  setVista:     (v: any) => void
-  guardarDiseno:(d: any) => void
+  setVista:       (v: any) => void
+  guardarDiseno:  (d: any) => void
+  disenoInicial?: any
 }) {
   const [vistaP,    setVistaP]    = useState<'semanal'|'mensual'|'diario'>('semanal')
   const [paleta,    setPaleta]    = useState<Paleta>(PALETAS[0])

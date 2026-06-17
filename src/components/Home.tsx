@@ -2,10 +2,11 @@
 import { useState } from 'react'
 import { Vista, Diseno } from '../constants'
 
-export default function Home({ setVista, disenos, onEliminar }: {
+export default function Home({ setVista, disenos, onEliminar, onAbrir }: {
   setVista:   (v: Vista) => void
   disenos:    Diseno[]
   onEliminar: (id: string) => void
+  onAbrir:    (d: Diseno) => void
 }) {
   const [tab, setTab] = useState<'todos'|'calendario'|'agenda'|'planificador'>('todos')
 
@@ -107,7 +108,10 @@ export default function Home({ setVista, disenos, onEliminar }: {
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:'12px' }}>
               {disenosFiltrados.map(d => (
-                <div key={d.id} style={{ background:'white', borderRadius:'12px', overflow:'hidden', border:'1px solid #e2e8f0', position:'relative' }}>
+                <div key={d.id} onClick={()=>onAbrir(d)} style={{ background:'white', borderRadius:'12px', overflow:'hidden', border:'1px solid #e2e8f0', position:'relative', cursor:'pointer', transition:'all 0.15s' }}
+                  onMouseEnter={(e:any)=>{ e.currentTarget.style.boxShadow='0 6px 18px rgba(0,0,0,0.10)'; e.currentTarget.style.transform='translateY(-2px)' }}
+                  onMouseLeave={(e:any)=>{ e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='translateY(0)' }}
+                >
                   <div style={{ height:'70px', background:`linear-gradient(135deg, ${d.paleta.header}dd, ${d.paleta.acento}99)`, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:d.fuente, fontSize:'13px', fontWeight:700, color:'white' }}>
                     {d.titulo}
                   </div>
@@ -118,10 +122,11 @@ export default function Home({ setVista, disenos, onEliminar }: {
                     <div style={{ fontSize:'10px', color:'#94a3b8' }}>{d.fechaCreacion}</div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'8px' }}>
                       <div style={{ fontSize:'10px', fontWeight:600, color:d.paleta.acento, padding:'2px 8px', borderRadius:'20px', background:`${d.paleta.acento}15` }}>
-                        {d.paleta.nombre}
+                        ✏️ {d.paleta.nombre}
                       </div>
                       <button
-                        onClick={() => {
+                        onClick={(e:any) => {
+                          e.stopPropagation()
                           if (window.confirm(`¿Seguro que querés eliminar "${d.titulo}"? Esta acción no se puede deshacer.`)) {
                             onEliminar(d.id)
                           }

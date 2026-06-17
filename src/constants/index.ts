@@ -130,4 +130,5 @@ export type Diseno  = {
   tamano:        string
   anio:          number
   fechaCreacion: string
+  data?:         any  // estado completo del editor (foto, logo, fondos, secciones, etc.) para poder reabrir y editar
 }
