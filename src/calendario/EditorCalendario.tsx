@@ -127,6 +127,31 @@ function getTam(id:string) {
 }
 
 // ── Mini calendario ───────────────────────────────────────────────────────────
+// ── Control numérico con flechas (reemplaza los sliders/barras) ───────────────
+// Muestra el valor exacto en un campo editable, con dos flechas para subir/bajar
+// de a un paso fijo. El valor también se puede escribir directamente.
+function NumStepper({ value,onChange,min,max,step=1,unit='',accent }:{
+  value:number; onChange:(v:number)=>void; min:number; max:number; step?:number; unit?:string; accent:string
+}) {
+  const clamp = (v:number) => Math.min(max, Math.max(min, v))
+  return (
+    <div style={{ display:'inline-flex',alignItems:'stretch',border:'1px solid #e2e8f0',borderRadius:'7px',overflow:'hidden',background:'white',height:'26px' }}>
+      <input
+        type="number" value={value} min={min} max={max} step={step}
+        onChange={(e:any)=>{ const v=parseFloat(e.target.value); if(!isNaN(v)) onChange(clamp(v)) }}
+        onBlur={(e:any)=>{ const v=parseFloat(e.target.value); onChange(clamp(isNaN(v)?min:v)) }}
+        className="num-stepper-input"
+        style={{ width:'40px',padding:'0 0 0 7px',border:'none',outline:'none',fontSize:'11px',fontWeight:700,color:'#1e293b',textAlign:'right',background:'transparent' }}
+      />
+      {unit && <span style={{ fontSize:'10px',color:'#94a3b8',display:'flex',alignItems:'center',paddingRight:'3px' }}>{unit}</span>}
+      <div style={{ display:'flex',flexDirection:'column',borderLeft:'1px solid #e2e8f0',width:'16px' }}>
+        <button type="button" onClick={()=>onChange(clamp(value+step))} style={{ flex:1,border:'none',background:'#f8fafc',cursor:'pointer',fontSize:'7px',lineHeight:1,color:accent,padding:0 }}>▲</button>
+        <button type="button" onClick={()=>onChange(clamp(value-step))} style={{ flex:1,border:'none',borderTop:'1px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',fontSize:'7px',lineHeight:1,color:accent,padding:0 }}>▼</button>
+      </div>
+    </div>
+  )
+}
+
 function MiniCal({ anio,mes,paleta,colorDom }:{ anio:number;mes:number;paleta:Paleta;colorDom:string }) {
   const dias = getDiasTrad(anio,mes)
   return (
@@ -213,7 +238,7 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview
           const nSem   = primer ? getNumSemana(anio,mesIdx,primer) : ''
           return (
             <div key={ri} style={{ display:'grid',gridTemplateColumns:'34px repeat(7,1fr)',flex:1 }}>
-              <div style={{ textAlign:'center',fontSize:'8px',color:`${colorHdr}aa`,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',border:`2.5px solid ${colorHdr}77` }}>
+              <div style={{ textAlign:'center',fontSize:'8px',color:`${colorHdr}aa`,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',border:`4px solid ${colorHdr}e6` }}>
                 {nSem}
               </div>
               {row.map((dia,ci)=>{
@@ -223,7 +248,7 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview
                 const isHoy   = dia===new Date().getDate()&&mesIdx===new Date().getMonth()&&anio===new Date().getFullYear()
                 return (
                   <div key={ci} style={{
-                    border:`2.5px solid ${colorHdr}77`,
+                    border:`4px solid ${colorHdr}e6`,
                     padding:'4px 6px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'space-between',
                     background:isHoy?`${colorDom}20`:feriado?`${colorDom}08`:'transparent',
                     position:'relative', overflow:'hidden',
@@ -416,6 +441,34 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
   // y a la cantidad de filas que tiene ESE mes en particular (algunos meses tienen
   // 5 semanas, otros 6). Así la página siempre queda completa, sin cortes ni
   // márgenes de sobra, sin importar el tamaño de papel que se elija (A4, A3, etc).
+  // ── Convierte posición(%) + zoom(%) en píxeles EXACTOS ────────────────────
+  // En vez de dejar que el navegador calcule porcentajes + transform (lo cual
+  // Chrome a veces resuelve mal al imprimir páginas con salto de página),
+  // calculamos nosotros mismos la posición final en píxeles. Así no le dejamos
+  // nada a Chrome para "interpretar" — el resultado es idéntico en pantalla,
+  // en el PDF y al imprimir.
+  function calcPosicionPx(contW:number, contH:number, posX:number, posY:number, zoom:number) {
+    const w = contW * zoom / 100
+    const h = contH * zoom / 100
+    const left = (contW * posX / 100) - w / 2
+    const top  = (contH * posY / 100) - h / 2
+    return { left: Math.round(left), top: Math.round(top), w: Math.round(w), h: Math.round(h) }
+  }
+
+  // ── Igual que arriba, pero para el LOGO: ancho y alto se calculan con la
+  // MISMA referencia (el ancho de la página) para garantizar que el logo
+  // sea SIEMPRE un círculo perfecto, sin importar si el papel es horizontal,
+  // vertical o cuadrado. Si se calculara el alto en base a pxH (como hace
+  // calcPosicionPx para fotos/fondos), en papel no cuadrado el resultado es
+  // un óvalo en vez de un círculo.
+  function calcLogoPx(pxW:number, pxH:number, posX:number, posY:number, sizePct:number) {
+    const w = pxW * sizePct / 100
+    const h = w
+    const left = (pxW * posX / 100) - w / 2
+    const top  = (pxH * posY / 100) - h / 2
+    return { left: Math.round(left), top: Math.round(top), w: Math.round(w), h: Math.round(h) }
+  }
+
   function generarGrillaHTML(idx:number, pxW:number, pxH:number, tamFuente:number): string {
     const dias=getDiasTrad(anio,idx)
     const fases=FASES[`${anio}-${idx}`]??[]
@@ -486,11 +539,11 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
       const primer=row.find(d=>d!==null)
       const nSem=primer?getNumSemana(anio,idx,primer):''
       return `<div style="display:grid;grid-template-columns:${colSemana}px repeat(7,1fr);height:${Math.round(altoFila)}px">
-        <div style="text-align:center;font-size:${fontSem}px;color:${ch};font-weight:900;display:flex;align-items:center;justify-content:center;border:3px solid ${ch}99">${nSem}</div>
+        <div style="text-align:center;font-size:${fontSem}px;color:${ch};font-weight:900;display:flex;align-items:center;justify-content:center;border:5px solid ${ch}e6">${nSem}</div>
         ${row.map((dia,ci)=>{
           const esDom=ci===0, feriado=dia?getFeriado(anio,idx,dia):null, fase=dia?faseMap[dia]:null
           const isHoy=dia===new Date().getDate()&&idx===new Date().getMonth()&&anio===new Date().getFullYear()
-          return `<div style="border:3px solid ${ch}99;padding:${padCeldaV}px ${padCeldaH}px;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;overflow:hidden;${feriado?`background:${cd}08;`:''}${isHoy?`background:${cd}20;`:''}">
+          return `<div style="border:5px solid ${ch}e6;padding:${padCeldaV}px ${padCeldaH}px;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;overflow:hidden;${feriado?`background:${cd}08;`:''}${isHoy?`background:${cd}20;`:''}">
             ${dia?`<div style="width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:3px">
               ${fase?`<div style="font-size:${Math.round(fsPx*0.8)}px">${ICONO_FASE[fase.tipo]}</div>`:''}
               ${feriado&&!fase?`<div style="font-size:${Math.round(fsPx*0.4)}px;color:${cd};line-height:1.05;max-width:100%;font-weight:700">${feriado}</div>`:''}
@@ -502,7 +555,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
     }).join('')
 
     return `<div style="width:${pxW}px;height:${pxH}px;background:${fondo};font-family:${fuente};display:flex;flex-direction:column;padding:${padTop}px ${padLR}px ${padBottom}px;box-sizing:border-box;overflow:hidden;position:relative">
-      ${fondosMes[idx]?`<div style="position:absolute;left:${fondosMesPosX[idx]}%;top:${fondosMesPosY[idx]}%;width:${fondosMesZoom[idx]}%;height:${fondosMesZoom[idx]}%;transform:translate(-50%,-50%);background:url('${fondosMes[idx]}') center/cover;opacity:${fondoGridOpacity};z-index:0;"></div>`:''}
+      ${fondosMes[idx]?(()=>{ const p=calcPosicionPx(pxW,pxH,fondosMesPosX[idx],fondosMesPosY[idx],fondosMesZoom[idx]); return `<div style="position:absolute;left:${p.left}px;top:${p.top}px;width:${p.w}px;height:${p.h}px;background:url('${fondosMes[idx]}') center/cover;opacity:${fondoGridOpacity};z-index:0;"></div>` })():''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${margenHeader}px;position:relative;z-index:1">
         ${miniStr(prevMes.a,prevMes.m)}
         <div style="text-align:center;flex:1">
@@ -533,9 +586,11 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
       document.body.appendChild(wrap)
 
       // ── Página 1: FOTO ──
+      const fotoStrPdf = foto ? (()=>{ const p=calcPosicionPx(pxW,pxH,fotoPosX,fotoPosY,fotoZoom); return `<div style="position:absolute;left:${p.left}px;top:${p.top}px;width:${p.w}px;height:${p.h}px;background:url('${foto}') center/cover;z-index:1"></div>` })() : ''
+      const logoStrPdf = logoData ? (()=>{ const p=calcLogoPx(pxW,pxH,logoData.x,logoData.y,logoData.size); return `<div style="position:absolute;left:${p.left}px;top:${p.top}px;width:${p.w}px;height:${p.h}px;border-radius:50%;background:url('${logoData.src}') center/cover;opacity:${logoData.opacity};z-index:8;box-shadow:0 4px 16px rgba(0,0,0,0.3);border:3px solid rgba(255,255,255,0.8)"></div>` })() : ''
       wrap.innerHTML=`<div style="width:${pxW}px;height:${pxH}px;overflow:hidden;position:relative;background:${paleta.fondo==='#0f172a'?'#1e293b':'#e8ecf0'}">
-        ${foto?`<div style="position:absolute;left:${fotoPosX}%;top:${fotoPosY}%;width:${fotoZoom}%;height:${fotoZoom}%;transform:translate(-50%,-50%);background:url('${foto}') center/cover;z-index:1"></div>`:''}
-        ${logoData?`<div style="position:absolute;left:${logoData.x}%;top:${logoData.y}%;width:${logoData.size}%;aspect-ratio:1;border-radius:50%;background:url('${logoData.src}') center/cover;opacity:${logoData.opacity};transform:translate(-50%,-50%);z-index:8;box-shadow:0 4px 16px rgba(0,0,0,0.3);border:3px solid rgba(255,255,255,0.8)"></div>`:''}
+        ${fotoStrPdf}
+        ${logoStrPdf}
       </div>`
       await new Promise(r=>setTimeout(r,200))
       let canvas=await html2canvas(wrap,{scale:3,useCORS:true,allowTaint:true,backgroundColor:paleta.fondo,logging:false,width:pxW,height:pxH})
@@ -566,12 +621,15 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
   function imprimirCalendario() {
     const previo=document.getElementById('print-cal-root'); if(previo) previo.remove()
     const prevSt=document.getElementById('print-cal-style'); if(prevSt) prevSt.remove()
-    const logoStr=logoData?`<div style="position:absolute;left:${logoData.x}%;top:${logoData.y}%;width:${logoData.size}%;aspect-ratio:1;border-radius:50%;background:url('${logoData.src}') center/cover;opacity:${logoData.opacity};transform:translate(-50%,-50%);z-index:8;box-shadow:0 4px 16px rgba(0,0,0,0.3);border:3px solid rgba(255,255,255,0.8)"></div>`:''
     const pxW = Math.round(tam.w*3.7795)
     const pxH = Math.round(tam.h*3.7795)
 
-    // Página 1: foto
-    const paginaFoto=`<div style="width:100vw;height:100vh;overflow:hidden;position:relative;background:${paleta.fondo==='#0f172a'?'#1e293b':'#e8ecf0'}">${foto?`<div style="position:absolute;left:${fotoPosX}%;top:${fotoPosY}%;width:${fotoZoom}%;height:${fotoZoom}%;transform:translate(-50%,-50%);background:url('${foto}') center/cover;z-index:1"></div>`:''} ${logoStr}</div>`
+    const logoStr=logoData?(()=>{ const p=calcLogoPx(pxW,pxH,logoData.x,logoData.y,logoData.size); return `<div style="position:absolute;left:${p.left}px;top:${p.top}px;width:${p.w}px;height:${p.h}px;border-radius:50%;background:url('${logoData.src}') center/cover;opacity:${logoData.opacity};z-index:8;box-shadow:0 4px 16px rgba(0,0,0,0.3);border:3px solid rgba(255,255,255,0.8)"></div>` })():''
+
+    // Página 1: foto — todo en píxeles exactos (ver calcPosicionPx), sin porcentajes
+    // ni transform, para que Chrome no tenga margen de error al paginar la impresión
+    const fotoStr = foto ? (()=>{ const p=calcPosicionPx(pxW,pxH,fotoPosX,fotoPosY,fotoZoom); return `<div style="position:absolute;left:${p.left}px;top:${p.top}px;width:${p.w}px;height:${p.h}px;background:url('${foto}') center/cover;z-index:1"></div>` })() : ''
+    const paginaFoto=`<div style="width:${pxW}px;height:${pxH}px;overflow:hidden;position:relative;background:${paleta.fondo==='#0f172a'?'#1e293b':'#e8ecf0'}">${fotoStr} ${logoStr}</div>`
 
     // Páginas 2-13: grillas — se reutiliza exactamente la misma función que genera el PDF,
     // así la impresión y el PDF nunca pueden desincronizarse, y ambos quedan con el
@@ -591,7 +649,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
       @media print {
         body > *:not(#print-cal-root) { display:none !important; }
         #print-cal-root { display:block !important; }
-        #print-cal-root > div { width:100vw !important; height:100vh !important; page-break-after:always !important; page-break-inside:avoid !important; overflow:hidden !important; }
+        #print-cal-root > div { page-break-after:always !important; page-break-inside:avoid !important; overflow:hidden !important; }
         #print-cal-root > div:last-child { page-break-after:auto !important; }
       }
     `
@@ -602,6 +660,11 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
     <div style={{ height:'100vh',display:'flex',flexDirection:'column',background:'#f8fafc' }}>
+      <style>{`
+        .num-stepper-input::-webkit-outer-spin-button,
+        .num-stepper-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+        .num-stepper-input { -moz-appearance:textfield; appearance:textfield; }
+      `}</style>
 
       {/* TOOLBAR */}
       <div style={{ background:'white',borderBottom:'1px solid #e2e8f0',padding:'10px 16px',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap' }}>
@@ -642,12 +705,9 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
         </div>
 
         {/* Tamaño de letra de los números */}
-        <div style={{ display:'flex',alignItems:'center',gap:'6px',padding:'4px 10px',borderRadius:'8px',border:'1px solid #e2e8f0',background:'white' }}>
+        <div style={{ display:'flex',alignItems:'center',gap:'6px',padding:'4px 8px',borderRadius:'8px',border:'1px solid #e2e8f0',background:'white' }}>
           <span style={{ fontSize:'12px',color:'#64748b' }}>🔤</span>
-          <input type="range" min={8} max={50} value={tamFuente}
-            onChange={(e:any)=>setTamFuente(parseInt(e.target.value))}
-            style={{ width:'70px',accentColor:paleta.acento }}/>
-          <span style={{ fontSize:'11px',fontWeight:700,color:'#64748b',minWidth:'24px' }}>{tamFuente}px</span>
+          <NumStepper value={tamFuente} onChange={setTamFuente} min={8} max={50} step={1} unit="px" accent={paleta.acento}/>
         </div>
 
         {/* Subtítulo editable */}
@@ -661,7 +721,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
             🎨 Fondo{fondosMes.some(Boolean)?` (${fondosMes.filter(Boolean).length}/12)`:''}
           </button>
           {showFondoPanel && (
-            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',left:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'14px',zIndex:300,width:'280px' }}>
+            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',left:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'16px',zIndex:300,width:'380px' }}>
               <div style={{ fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'10px' }}>FONDO POR MES</div>
 
               {/* Selector de mes */}
@@ -690,16 +750,14 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                   {/* Mini preview draggable del fondo del mes */}
                   <div
                     onMouseDown={(e:any)=>handleFondoPanStart(e, mesFondoActivo)}
-                    style={{ width:'100%',height:'72px',borderRadius:'8px',backgroundImage:`url('${fondosMes[mesFondoActivo]}')`,backgroundSize:`${fondosMesZoom[mesFondoActivo]}%`,backgroundPosition:`${fondosMesPosX[mesFondoActivo]}% ${fondosMesPosY[mesFondoActivo]}%`,backgroundRepeat:'no-repeat',marginBottom:'8px',border:`2px solid ${paleta.acento}44`,cursor:'grab',userSelect:'none' }}
+                    style={{ width:'100%',height:'190px',borderRadius:'10px',backgroundImage:`url('${fondosMes[mesFondoActivo]}')`,backgroundSize:`${fondosMesZoom[mesFondoActivo]}%`,backgroundPosition:`${fondosMesPosX[mesFondoActivo]}% ${fondosMesPosY[mesFondoActivo]}%`,backgroundRepeat:'no-repeat',marginBottom:'8px',border:`2px solid ${paleta.acento}44`,cursor:'grab',userSelect:'none' }}
                   />
                   <div style={{ fontSize:'9px',color:'#94a3b8',marginBottom:'8px',textAlign:'center' }}>✋ Arrastrá la imagen para moverla</div>
                   {/* Zoom del fondo de este mes */}
-                  <div style={{ display:'flex',justifyContent:'space-between',fontSize:'10px',fontWeight:700,color:'#64748b',marginBottom:'3px' }}>
-                    <span>🔍 Zoom</span><span>{fondosMesZoom[mesFondoActivo]}%</span>
+                  <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px' }}>
+                    <span style={{ fontSize:'10px',fontWeight:700,color:'#64748b' }}>🔍 Zoom</span>
+                    <NumStepper value={fondosMesZoom[mesFondoActivo]} onChange={(v)=>setFondosMesZoom(prev=>{const c=[...prev];c[mesFondoActivo]=v;return c})} min={20} max={400} step={5} unit="%" accent={paleta.acento}/>
                   </div>
-                  <input type="range" min={20} max={400} value={fondosMesZoom[mesFondoActivo]}
-                    onChange={(e:any)=>setFondosMesZoom(prev=>{const c=[...prev];c[mesFondoActivo]=parseInt(e.target.value);return c})}
-                    style={{ width:'100%',accentColor:paleta.acento,marginBottom:'8px' }}/>
                   <div style={{ display:'flex',gap:'6px',marginBottom:'10px' }}>
                     <button onClick={()=>aplicarFondoATodos(mesFondoActivo)} style={{ flex:1,padding:'6px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',fontSize:'10px',fontWeight:600,color:paleta.acento }}>
                       📋 Aplicar a los 12 meses
@@ -713,13 +771,9 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                 </>
               )}
 
-              <div style={{ marginBottom:'4px' }}>
-                <div style={{ display:'flex',justifyContent:'space-between',fontSize:'10px',fontWeight:700,color:'#64748b',marginBottom:'3px' }}>
-                  <span>Opacidad (todos los meses)</span><span>{Math.round(fondoGridOpacity*100)}%</span>
-                </div>
-                <input type="range" min={5} max={100} value={Math.round(fondoGridOpacity*100)}
-                  onChange={(e:any)=>setFondoGridOpacity(parseInt(e.target.value)/100)}
-                  style={{ width:'100%',accentColor:paleta.acento }}/>
+              <div style={{ marginBottom:'4px',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+                <span style={{ fontSize:'10px',fontWeight:700,color:'#64748b' }}>Opacidad (todos los meses)</span>
+                <NumStepper value={Math.round(fondoGridOpacity*100)} onChange={(v)=>setFondoGridOpacity(v/100)} min={5} max={100} step={5} unit="%" accent={paleta.acento}/>
               </div>
 
               <div style={{ fontSize:'10px',color:'#94a3b8',marginTop:'6px' }}>💡 Cada mes puede tener su propia imagen de fondo, o usar el botón para aplicar una a los 12</div>
@@ -753,16 +807,12 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                   <div style={{ fontSize:'10px',color:'#94a3b8',marginTop:'4px' }}>{logoSize}% del ancho</div>
                 </div>
                 {[
-                  { label:'Tamaño',value:logoSize,set:setLogoSize,min:3,max:25,unit:'%' },
-                  { label:'Opacidad',value:Math.round(logoOpacity*100),set:(v:number)=>setLogoOpacity(v/100),min:10,max:100,unit:'%' },
+                  { label:'Tamaño',value:logoSize,set:setLogoSize,min:3,max:25,step:1,unit:'%' },
+                  { label:'Opacidad',value:Math.round(logoOpacity*100),set:(v:number)=>setLogoOpacity(v/100),min:10,max:100,step:5,unit:'%' },
                 ].map(item=>(
-                  <div key={item.label} style={{ marginBottom:'8px' }}>
-                    <div style={{ display:'flex',justifyContent:'space-between',fontSize:'10px',fontWeight:700,color:'#64748b',marginBottom:'3px' }}>
-                      <span>{item.label}</span><span>{item.value}{item.unit}</span>
-                    </div>
-                    <input type="range" min={item.min} max={item.max} value={item.value}
-                      onChange={(e:any)=>item.set(parseInt(e.target.value))}
-                      style={{ width:'100%',accentColor:paleta.acento }}/>
+                  <div key={item.label} style={{ marginBottom:'8px',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+                    <span style={{ fontSize:'10px',fontWeight:700,color:'#64748b' }}>{item.label}</span>
+                    <NumStepper value={item.value} onChange={item.set} min={item.min} max={item.max} step={item.step} unit={item.unit} accent={paleta.acento}/>
                   </div>
                 ))}
                 <div style={{ fontSize:'10px',color:'#94a3b8',textAlign:'center' }}>💡 Arrastrá el logo en la foto</div>
@@ -867,16 +917,14 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                     <button onClick={()=>{setFotoZoom(100);setFotoPosX(50);setFotoPosY(50)}} style={{ fontSize:'10px',padding:'3px 8px',borderRadius:'6px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer',color:'#94a3b8' }}>↺ Reset</button>
                   </div>
                 </div>
-                <div style={{ display:'flex',justifyContent:'space-between',fontSize:'10px',fontWeight:700,color:'#64748b',marginBottom:'4px' }}>
-                  <span>📐 Tamaño</span><span>{fotoZoom}%</span>
+                <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px' }}>
+                  <span style={{ fontSize:'10px',fontWeight:700,color:'#64748b' }}>📐 Tamaño</span>
+                  <NumStepper value={fotoZoom} onChange={setFotoZoom} min={5} max={400} step={5} unit="%" accent={paleta.acento}/>
                 </div>
-                <input type="range" min={5} max={400} value={fotoZoom}
-                  onChange={(e:any)=>setFotoZoom(parseInt(e.target.value))}
-                  style={{ width:'100%',accentColor:paleta.acento,marginBottom:'6px' }}/>
-                <div style={{ fontSize:'10px',color:'#94a3b8' }}>✋ Arrastrá la foto · 📐 Slider para tamaño · 🏷️ Arrastrá el logo</div>
+                <div style={{ fontSize:'10px',color:'#94a3b8' }}>✋ Arrastrá la foto · 📐 Flechas para tamaño · 🏷️ Arrastrá el logo</div>
               </div>
             ) : (
-              <div style={{ marginTop:'8px',textAlign:'center',fontSize:'11px',color:paleta.acento }}>Subí una foto, arrastrala y ajustá su tamaño con el slider</div>
+              <div style={{ marginTop:'8px',textAlign:'center',fontSize:'11px',color:paleta.acento }}>Subí una foto, arrastrala y ajustá su tamaño con las flechas</div>
             )}
           </div>
         )}
@@ -907,10 +955,8 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
             {fondosMes[mesActivo] && (
               <div style={{ marginTop:'8px',background:'white',borderRadius:'8px',padding:'10px 12px',border:'1px solid #e2e8f0',display:'flex',alignItems:'center',gap:'10px' }}>
                 <div style={{ fontSize:'10px',fontWeight:700,color:'#94a3b8',whiteSpace:'nowrap' }}>📐 Fondo {MESES[mesActivo].slice(0,3)}</div>
-                <input type="range" min={5} max={400} value={fondosMesZoom[mesActivo]}
-                  onChange={(e:any)=>setFondosMesZoom(prev=>{const c=[...prev];c[mesActivo]=parseInt(e.target.value);return c})}
-                  style={{ flex:1,accentColor:paleta.acento }}/>
-                <span style={{ fontSize:'10px',fontWeight:700,color:'#64748b',minWidth:'32px' }}>{fondosMesZoom[mesActivo]}%</span>
+                <div style={{ flex:1 }}/>
+                <NumStepper value={fondosMesZoom[mesActivo]} onChange={(v)=>setFondosMesZoom(prev=>{const c=[...prev];c[mesActivo]=v;return c})} min={5} max={400} step={5} unit="%" accent={paleta.acento}/>
                 <button onClick={()=>{
                   setFondosMesZoom(prev=>{const c=[...prev];c[mesActivo]=100;return c})
                   setFondosMesPosX(prev=>{const c=[...prev];c[mesActivo]=50;return c})
