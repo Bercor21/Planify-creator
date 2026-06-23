@@ -261,7 +261,7 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview
                         {fase && <div style={{ fontSize:`${Math.round(tamFuente*0.65)}px`,lineHeight:1 }}>{ICONO_FASE[fase.tipo]}</div>}
                         {feriado&&!fase && <div style={{ fontSize:`${Math.round(tamFuente*0.35)}px`,color:colorDom,lineHeight:1.05,maxWidth:'100%',fontWeight:700 }}>{feriado}</div>}
                       </div>
-                      <div style={{ fontSize:`calc(${Math.round(30/rows.length)}vh)`,fontWeight:900,color:isHoy?colorDom:esDom||feriado?colorDom:colorCelda,lineHeight:1,alignSelf:'flex-end',WebkitTextStroke:'0.5px currentColor' as any }}>{dia}</div>
+                      <div style={{ fontSize:`calc(${Math.round(20/rows.length)}vh)`,fontWeight:900,color:isHoy?colorDom:esDom||feriado?colorDom:colorCelda,lineHeight:1,alignSelf:'flex-end',WebkitTextStroke:'0.5px currentColor' as any }}>{dia}</div>
                     </>}
                   </div>
                 )
@@ -535,11 +535,10 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
 
     // El tamaño del número del día respeta el control manual del usuario (tamFuente),
     // pero nunca se permite que sea más grande de lo que realmente cabe en la fila calculada.
-    // Número del día: ocupa automáticamente el 58% de la fila disponible.
-    // Sin cap de tamFuente — así todos los meses y todas las filas tienen
-    // exactamente el mismo tamaño de número, tan grande como cabe en la celda.
-    const fsPx = Math.round(altoFila * 0.58)
-    const padCeldaV = Math.max(2, Math.round(altoFila*0.04))
+    // Número del día: 42% de la fila — grande y legible, sin desborde en
+    // ninguna plataforma (Windows o Mac tienen rendering de fuentes distinto).
+    const fsPx = Math.round(altoFila * 0.42)
+    const padCeldaV = Math.max(2, Math.round(altoFila*0.05))
     const padCeldaH = Math.max(2, Math.round(pxW*0.00713))
 
     const anchoMini = Math.round(pxW*0.218)
@@ -581,7 +580,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
 
     return `<div style="width:${pxW}px;height:${pxH}px;background:${fondo};font-family:${fuente};display:flex;flex-direction:column;padding:${padTop}px ${padLR}px ${padBottom}px;box-sizing:border-box;overflow:hidden;position:relative">
       ${fondosMes[idx]?(()=>{ const p=calcPosicionPx(pxW,pxH,fondosMesPosX[idx],fondosMesPosY[idx],fondosMesZoom[idx]); return `<div style="position:absolute;left:${p.left}px;top:${p.top}px;width:${p.w}px;height:${p.h}px;background:url('${fondosMes[idx]}') center/contain no-repeat;opacity:${fondoGridOpacity};z-index:0;"></div>` })():''}
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${margenHeader}px;position:relative;z-index:1">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${margenHeader}px;position:relative;z-index:1;height:${altoHeaderTxt}px;overflow:hidden;flex-shrink:0">
         ${miniStr(prevMes.a,prevMes.m)}
         <div style="text-align:center;flex:1">
           <div style="font-size:${fontAnio}px;font-weight:900;color:${cd};letter-spacing:10px;line-height:1">${anio}</div>
@@ -590,12 +589,12 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
         </div>
         ${miniStr(nextMes.a,nextMes.m)}
       </div>
-      <div style="display:grid;grid-template-columns:${colSemana}px repeat(7,1fr);gap:${gapCell}px;height:${altoFilaNombres}px;margin-bottom:${margenFilaNombres}px;position:relative;z-index:1">
+      <div style="display:grid;grid-template-columns:${colSemana}px repeat(7,1fr);gap:${gapCell}px;height:${altoFilaNombres}px;margin-bottom:${margenFilaNombres}px;position:relative;z-index:1;flex-shrink:0">
         <div style="text-align:center;font-size:${fontSem}px;font-weight:900;color:${ch};border:${borderW}px solid ${ch};border-radius:${radius}px;background:${fondosMes[idx]?'rgba(255,255,255,0.5)':'white'};box-sizing:border-box;display:flex;align-items:center;justify-content:center">SEM</div>
         ${DIAS_NOMBRES.map((d,i)=>`<div style="text-align:center;font-size:${fontDiaSemana}px;font-weight:900;color:${i===0?cd:ch};border:${borderW}px solid ${i===0?cd:ch};border-radius:${radius}px;background:${fondosMes[idx]?'rgba(255,255,255,0.5)':'white'};box-sizing:border-box;display:flex;align-items:center;justify-content:center;-webkit-text-stroke:0.3px currentColor">${d}</div>`).join('')}
       </div>
       <div style="display:flex;flex-direction:column;gap:${gapFila}px;position:relative;z-index:1">${rowsStr}</div>
-      ${fases.length>0?`<div style="display:flex;gap:${gapFooter}px;justify-content:center;height:${altoFooter}px;align-items:center;flex-wrap:nowrap;overflow:hidden;border-top:1.5px solid ${ch}33;position:relative;z-index:1">${fases.map(f=>`<span style="font-size:${fontFooterTxt}px;color:${ch};font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0"><span style="font-size:${fontFooterIco}px">${ICONO_FASE[f.tipo]}</span><span>${f.dia} ${LABEL_FASE[f.tipo]}</span></span>`).join('')}</div>`:''}
+      ${fases.length>0?`<div style="display:flex;gap:${gapFooter}px;justify-content:center;height:${altoFooter}px;align-items:center;flex-wrap:nowrap;overflow:hidden;border-top:1.5px solid ${ch}33;position:relative;z-index:1;flex-shrink:0">${fases.map(f=>`<span style="font-size:${fontFooterTxt}px;color:${ch};font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0"><span style="font-size:${fontFooterIco}px">${ICONO_FASE[f.tipo]}</span><span>${f.dia} ${LABEL_FASE[f.tipo]}</span></span>`).join('')}</div>`:''}
     </div>`
   }
 
@@ -684,7 +683,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ height:'100vh',display:'flex',flexDirection:'column',background:'#f8fafc' }}>
+    <div style={{ height:'100vh',display:'flex',flexDirection:'column',background:'#f8fafc',overflowX:'hidden' }}>
       <style>{`
         .num-stepper-input::-webkit-outer-spin-button,
         .num-stepper-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
@@ -781,7 +780,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
             🎨 Fondo{fondosMes.some(Boolean)?` (${fondosMes.filter(Boolean).length}/12)`:''}
           </button>
           {showFondoPanel && (
-            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',left:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'16px',zIndex:300,width:'480px',maxHeight:'85vh',overflowY:'auto' }}>
+            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',right:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'16px',zIndex:300,width:'480px',maxHeight:'85vh',overflowY:'auto' }}>
               <div style={{ fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'10px' }}>FONDO POR MES</div>
 
               {/* Selector de mes */}
@@ -855,7 +854,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
             🏷️ Logo{logo?' ✓':''}
           </button>
           {showLogo && (
-            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',left:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'14px',zIndex:300,width:'220px' }}>
+            <div onClick={e=>e.stopPropagation()} style={{ position:'absolute',top:'calc(100% + 4px)',right:0,background:'white',borderRadius:'12px',border:'1px solid #e2e8f0',boxShadow:'0 8px 24px rgba(0,0,0,0.12)',padding:'14px',zIndex:300,width:'220px' }}>
               <div style={{ fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'10px' }}>LOGO (sobre la foto)</div>
               <div style={{ display:'flex',gap:'8px',marginBottom:'10px' }}>
                 <button onClick={subirLogo} style={{ flex:1,padding:'7px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer',fontSize:'11px',fontWeight:600,color:'#64748b' }}>📷 Subir</button>
@@ -992,7 +991,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
 
         {/* Vista CALENDARIO */}
         {vistaPreview==='calendario' && (
-          <div style={{ maxWidth:'900px',margin:'0 auto' }}>
+          <div style={{ maxWidth:'900px',margin:'0 auto',width:'100%' }}>
             <div style={{ display:'flex',gap:'6px',justifyContent:'center',marginBottom:'12px',flexWrap:'wrap' }}>
               {MESES.map((m,i)=>(
                 <button key={i} onClick={()=>setMesActivo(i)} style={{ padding:'4px 10px',borderRadius:'20px',border:'none',cursor:'pointer',fontSize:'11px',fontWeight:600,background:mesActivo===i?paleta.header:'transparent',color:mesActivo===i?'white':paleta.texto }}>
