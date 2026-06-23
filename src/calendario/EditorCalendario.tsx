@@ -168,8 +168,8 @@ function MiniCal({ anio,mes,paleta,colorDom }:{ anio:number;mes:number;paleta:Pa
 }
 
 // ── Página de grilla del mes (sin foto, hoja completa) ────────────────────────
-function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview,tamFuente,fondoMes,fondoGridOpacity,fondoZoom,fondoPosX,fondoPosY,onFondoDragStart }:{
-  mesIdx:number;anio:number;paleta:Paleta;fuente:string;titulo:string;subtitulo:string;isPreview:boolean;tamFuente:number;fondoMes?:string;fondoGridOpacity:number;fondoZoom?:number;fondoPosX?:number;fondoPosY?:number;onFondoDragStart?:(e:React.MouseEvent)=>void
+function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview,tamFuente,fondoMes,fondoGridOpacity,fondoZoom,fondoPosX,fondoPosY,onFondoDragStart,colorDomOverride,colorHdrOverride }:{
+  mesIdx:number;anio:number;paleta:Paleta;fuente:string;titulo:string;subtitulo:string;isPreview:boolean;tamFuente:number;fondoMes?:string;fondoGridOpacity:number;fondoZoom?:number;fondoPosX?:number;fondoPosY?:number;onFondoDragStart?:(e:React.MouseEvent)=>void;colorDomOverride?:string;colorHdrOverride?:string
 }) {
   const dias      = getDiasTrad(anio,mesIdx)
   const fases     = FASES[`${anio}-${mesIdx}`] ?? []
@@ -179,8 +179,8 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview
   for (let i=0;i<dias.length;i+=7) rows.push(dias.slice(i,i+7))
   const prevMes = mesIdx===0?{a:anio-1,m:11}:{a:anio,m:mesIdx-1}
   const nextMes = mesIdx===11?{a:anio+1,m:0}:{a:anio,m:mesIdx+1}
-  const colorDom = paleta.acento
-  const colorHdr = paleta.header
+  const colorDom = colorDomOverride ?? paleta.acento
+  const colorHdr = colorHdrOverride ?? paleta.header
   const colorTxt = paleta.texto
   const fondo    = paleta.fondo==='#0f172a'?'#1e293b':'#ffffff'
 
@@ -258,10 +258,10 @@ function PaginaCalendario({ mesIdx,anio,paleta,fuente,titulo,subtitulo,isPreview
                   }}>
                     {dia && <>
                       <div style={{ width:'100%',display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'2px' }}>
-                        {fase && <div style={{ fontSize:`${Math.round(tamFuente*0.8)}px`,lineHeight:1 }}>{ICONO_FASE[fase.tipo]}</div>}
-                        {feriado&&!fase && <div style={{ fontSize:`${Math.round(tamFuente*0.4)}px`,color:colorDom,lineHeight:1.05,maxWidth:'100%',fontWeight:700 }}>{feriado}</div>}
+                        {fase && <div style={{ fontSize:`${Math.round(tamFuente*0.65)}px`,lineHeight:1 }}>{ICONO_FASE[fase.tipo]}</div>}
+                        {feriado&&!fase && <div style={{ fontSize:`${Math.round(tamFuente*0.35)}px`,color:colorDom,lineHeight:1.05,maxWidth:'100%',fontWeight:700 }}>{feriado}</div>}
                       </div>
-                      <div style={{ fontSize:`${tamFuente}px`,fontWeight:900,color:isHoy?colorDom:esDom||feriado?colorDom:colorCelda,lineHeight:1.1,alignSelf:'flex-end',WebkitTextStroke:'0.5px currentColor' as any }}>{dia}</div>
+                      <div style={{ fontSize:`calc(${Math.round(30/rows.length)}vh)`,fontWeight:900,color:isHoy?colorDom:esDom||feriado?colorDom:colorCelda,lineHeight:1,alignSelf:'flex-end',WebkitTextStroke:'0.5px currentColor' as any }}>{dia}</div>
                     </>}
                   </div>
                 )
@@ -308,7 +308,6 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
   const [fondosMes, setFondosMes] = useState<(string|undefined)[]>(d0?.fondosMes ?? Array(12).fill(undefined))
   const [fondoGridOpacity, setFondoGridOpacity] = useState(d0?.fondoGridOpacity ?? 0.15)
   const [showFondoPanel, setShowFondoPanel] = useState(false)
-  const [mesFondoActivo, setMesFondoActivo] = useState(0)
   // Foto principal: zoom y posición
   const [fotoZoom, setFotoZoom] = useState<number>(d0?.fotoZoom ?? 100)
   const [fotoPosX, setFotoPosX] = useState<number>(d0?.fotoPosX ?? 50)
@@ -323,6 +322,16 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
   const [logoY,       setLogoY]       = useState(d0?.logoY ?? 10)
   const [logoSize,    setLogoSize]    = useState(d0?.logoSize ?? 8)
   const [logoOpacity, setLogoOpacity] = useState(d0?.logoOpacity ?? 1)
+
+  // ── Colores personalizados (anulan la paleta cuando se eligen) ────────────
+  // colorDomPersonal: domingos, feriados, año 2026 (el "acento" del calendario)
+  // colorHdrPersonal: encabezados, días de la semana, bordes, número del mes
+  const [colorDomPersonal, setColorDomPersonal] = useState<string|null>(d0?.colorDomPersonal ?? null)
+  const [colorHdrPersonal, setColorHdrPersonal] = useState<string|null>(d0?.colorHdrPersonal ?? null)
+
+  // Colores efectivos: el personal si está elegido, si no el de la paleta actual
+  const colorDomEfectivo = colorDomPersonal ?? paleta.acento
+  const colorHdrEfectivo = colorHdrPersonal ?? paleta.header
   const [showLogo,    setShowLogo]    = useState(false)
   const [idDiseno,    setIdDiseno]    = useState<string|undefined>(disenoInicial?.id)
   const previewRef      = useRef<HTMLDivElement>(null)   // ref del contenedor de la foto (para drag del logo)
@@ -482,7 +491,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
     const numFilas = rows.length
     const prevMes=idx===0?{a:anio-1,m:11}:{a:anio,m:idx-1}
     const nextMes=idx===11?{a:anio+1,m:0}:{a:anio,m:idx+1}
-    const cd=paleta.acento, ch=paleta.header, ct=paleta.texto
+    const cd=colorDomEfectivo, ch=colorHdrEfectivo, ct=paleta.texto
     const fondo=paleta.fondo==='#0f172a'?'#1e293b':'#ffffff'
 
     // ── Escalas: todo proporcional a pxW/pxH (el tamaño real de la hoja elegida) ──
@@ -526,9 +535,11 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
 
     // El tamaño del número del día respeta el control manual del usuario (tamFuente),
     // pero nunca se permite que sea más grande de lo que realmente cabe en la fila calculada.
-    const fontDiaCabe = Math.round(altoFila*0.40)
-    const fsPx = Math.min(Math.round(tamFuente*1.6), fontDiaCabe)
-    const padCeldaV = Math.max(2, Math.round(altoFila*0.07))
+    // Número del día: ocupa automáticamente el 58% de la fila disponible.
+    // Sin cap de tamFuente — así todos los meses y todas las filas tienen
+    // exactamente el mismo tamaño de número, tan grande como cabe en la celda.
+    const fsPx = Math.round(altoFila * 0.58)
+    const padCeldaV = Math.max(2, Math.round(altoFila*0.04))
     const padCeldaH = Math.max(2, Math.round(pxW*0.00713))
 
     const anchoMini = Math.round(pxW*0.218)
@@ -724,6 +735,41 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
           <NumStepper value={tamFuente} onChange={setTamFuente} min={8} max={50} step={1} unit="px" accent={paleta.acento}/>
         </div>
 
+        {/* ── Selector de colores personalizados ────────────────────────────
+            🔴 Dom/Año: domingos, año 2026, feriados, acento
+            🔵 Encabezados: mes, días semana, bordes celdas               */}
+        {(['dom','hdr'] as const).map(which=>{
+          const isD = which==='dom'
+          const current = isD ? colorDomEfectivo : colorHdrEfectivo
+          const setter  = isD ? setColorDomPersonal : setColorHdrPersonal
+          const label   = isD ? '🔴 Dom' : '🔵 Enc'
+          const SWATCHES = ['#DC2626','#1A1A1A','#1E3A5F','#2563EB','#7C3AED','#16A34A','#EA580C','#ffffff']
+          return (
+            <div key={which} style={{ display:'flex',alignItems:'center',gap:'4px',padding:'4px 8px',borderRadius:'8px',border:'1px solid #e2e8f0',background:'white' }}>
+              <span style={{ fontSize:'11px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap' }}>{label}</span>
+              {SWATCHES.map(c=>(
+                <button key={c} type="button" onClick={()=>setter(c)}
+                  title={c}
+                  style={{
+                    width:'16px', height:'16px', borderRadius:'50%',
+                    background:c, border: current===c ? '2.5px solid #1e293b' : c==='#ffffff' ? '1.5px solid #cbd5e1' : '1.5px solid transparent',
+                    cursor:'pointer', padding:0, flexShrink:0,
+                    boxShadow: current===c ? '0 0 0 1.5px white inset' : 'none',
+                    outline:'none',
+                  }}
+                />
+              ))}
+              {/* Picker de color libre */}
+              <input type="color" value={current} title="Color personalizado"
+                onChange={(e:any)=>setter(e.target.value)}
+                style={{ width:'18px',height:'18px',borderRadius:'50%',border:'none',cursor:'pointer',padding:0,background:'transparent' }}/>
+              {/* Resetear a color de paleta */}
+              <button type="button" onClick={()=>setter(null)} title="Resetear al color de la paleta"
+                style={{ fontSize:'10px',color:'#94a3b8',border:'none',background:'transparent',cursor:'pointer',padding:'0 2px',lineHeight:1 }}>↺</button>
+            </div>
+          )
+        })}
+
         {/* Subtítulo editable */}
         <input value={subtitulo} onChange={(e:any)=>setSubtitulo(e.target.value)}
           placeholder="Subtítulo (opcional)"
@@ -741,10 +787,10 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
               {/* Selector de mes */}
               <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'4px',marginBottom:'10px' }}>
                 {MESES.map((m,i)=>(
-                  <button key={i} onClick={()=>setMesFondoActivo(i)} style={{
+                  <button key={i} onClick={()=>setMesActivo(i)} style={{
                     padding:'5px 2px',borderRadius:'6px',border:'none',cursor:'pointer',fontSize:'10px',fontWeight:700,position:'relative',
-                    background:mesFondoActivo===i?paleta.header:'#f1f5f9',
-                    color:mesFondoActivo===i?'white':'#64748b',
+                    background:mesActivo===i?paleta.header:'#f1f5f9',
+                    color:mesActivo===i?'white':'#64748b',
                   }}>
                     {m.slice(0,3)}
                     {fondosMes[i] && <span style={{ position:'absolute',top:'-3px',right:'-3px',width:'8px',height:'8px',borderRadius:'50%',background:'#22c55e',border:'1.5px solid white' }}/>}
@@ -752,34 +798,34 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                 ))}
               </div>
 
-              <div style={{ fontSize:'11px',fontWeight:700,color:paleta.header,marginBottom:'8px' }}>{MESES[mesFondoActivo]}</div>
+              <div style={{ fontSize:'11px',fontWeight:700,color:paleta.header,marginBottom:'8px' }}>{MESES[mesActivo]}</div>
 
               <div style={{ display:'flex',gap:'8px',marginBottom:'10px' }}>
-                <button onClick={()=>subirFondoGrid(mesFondoActivo)} style={{ flex:1,padding:'7px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer',fontSize:'11px',fontWeight:600,color:'#64748b' }}>📷 Subir</button>
-                {fondosMes[mesFondoActivo] && <button onClick={()=>quitarFondoMes(mesFondoActivo)} style={{ padding:'7px 10px',borderRadius:'7px',border:'1px solid #fecaca',background:'#fef2f2',cursor:'pointer',fontSize:'11px',color:'#dc2626' }}>✕</button>}
+                <button onClick={()=>subirFondoGrid(mesActivo)} style={{ flex:1,padding:'7px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer',fontSize:'11px',fontWeight:600,color:'#64748b' }}>📷 Subir</button>
+                {fondosMes[mesActivo] && <button onClick={()=>quitarFondoMes(mesActivo)} style={{ padding:'7px 10px',borderRadius:'7px',border:'1px solid #fecaca',background:'#fef2f2',cursor:'pointer',fontSize:'11px',color:'#dc2626' }}>✕</button>}
               </div>
 
-              {fondosMes[mesFondoActivo] && (
+              {fondosMes[mesActivo] && (
                 <>
                   {/* Mini preview draggable del fondo del mes */}
                   <div
-                    onMouseDown={(e:any)=>handleFondoPanStart(e, mesFondoActivo)}
-                    style={{ width:'100%',height:'320px',borderRadius:'10px',backgroundImage:`url('${fondosMes[mesFondoActivo]}')`,backgroundSize:`${fondosMesZoom[mesFondoActivo]}%`,backgroundPosition:`${fondosMesPosX[mesFondoActivo]}% ${fondosMesPosY[mesFondoActivo]}%`,backgroundRepeat:'no-repeat',marginBottom:'8px',border:`2px solid ${paleta.acento}44`,cursor:'grab',userSelect:'none' }}
+                    onMouseDown={(e:any)=>handleFondoPanStart(e, mesActivo)}
+                    style={{ width:'100%',height:'320px',borderRadius:'10px',backgroundImage:`url('${fondosMes[mesActivo]}')`,backgroundSize:`${fondosMesZoom[mesActivo]}%`,backgroundPosition:`${fondosMesPosX[mesActivo]}% ${fondosMesPosY[mesActivo]}%`,backgroundRepeat:'no-repeat',marginBottom:'8px',border:`2px solid ${paleta.acento}44`,cursor:'grab',userSelect:'none' }}
                   />
                   <div style={{ fontSize:'9px',color:'#94a3b8',marginBottom:'8px',textAlign:'center' }}>✋ Arrastrá la imagen para moverla</div>
                   {/* Zoom del fondo de este mes */}
                   <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px' }}>
                     <span style={{ fontSize:'10px',fontWeight:700,color:'#64748b' }}>🔍 Zoom</span>
-                    <NumStepper value={fondosMesZoom[mesFondoActivo]} onChange={(v)=>setFondosMesZoom(prev=>{const c=[...prev];c[mesFondoActivo]=v;return c})} min={5} max={400} step={5} unit="%" accent={paleta.acento}/>
+                    <NumStepper value={fondosMesZoom[mesActivo]} onChange={(v)=>setFondosMesZoom(prev=>{const c=[...prev];c[mesActivo]=v;return c})} min={5} max={400} step={5} unit="%" accent={paleta.acento}/>
                   </div>
                   <div style={{ display:'flex',gap:'6px',marginBottom:'10px' }}>
-                    <button onClick={()=>aplicarFondoATodos(mesFondoActivo)} style={{ flex:1,padding:'6px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',fontSize:'10px',fontWeight:600,color:paleta.acento }}>
+                    <button onClick={()=>aplicarFondoATodos(mesActivo)} style={{ flex:1,padding:'6px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'#f8fafc',cursor:'pointer',fontSize:'10px',fontWeight:600,color:paleta.acento }}>
                       📋 Aplicar a los 12 meses
                     </button>
                     <button onClick={()=>{
-                      setFondosMesZoom(prev=>{const c=[...prev];c[mesFondoActivo]=100;return c})
-                      setFondosMesPosX(prev=>{const c=[...prev];c[mesFondoActivo]=50;return c})
-                      setFondosMesPosY(prev=>{const c=[...prev];c[mesFondoActivo]=50;return c})
+                      setFondosMesZoom(prev=>{const c=[...prev];c[mesActivo]=100;return c})
+                      setFondosMesPosX(prev=>{const c=[...prev];c[mesActivo]=50;return c})
+                      setFondosMesPosY(prev=>{const c=[...prev];c[mesActivo]=50;return c})
                     }} style={{ padding:'6px 8px',borderRadius:'7px',border:'1px solid #e2e8f0',background:'white',cursor:'pointer',fontSize:'10px',color:'#94a3b8' }}>↺</button>
                   </div>
                 </>
@@ -845,6 +891,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                 logo, logoX, logoY, logoSize, logoOpacity,
                 fotoZoom, fotoPosX, fotoPosY,
                 fondosMesZoom, fondosMesPosX, fondosMesPosY,
+                colorDomPersonal, colorHdrPersonal,
               }
             })
             if (nuevoId) setIdDiseno(nuevoId)
@@ -962,6 +1009,7 @@ export default function EditorCalendario({ setVista,guardarDiseno,disenoInicial 
                   fondoMes={fondosMes[mesActivo]} fondoGridOpacity={fondoGridOpacity}
                   fondoZoom={fondosMesZoom[mesActivo]} fondoPosX={fondosMesPosX[mesActivo]} fondoPosY={fondosMesPosY[mesActivo]}
                   onFondoDragStart={fondosMes[mesActivo] ? handleFondoCalDragStart : undefined}
+                  colorDomOverride={colorDomEfectivo} colorHdrOverride={colorHdrEfectivo}
                 />
               </div>
             </div>
